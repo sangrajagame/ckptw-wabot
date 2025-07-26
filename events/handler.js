@@ -2,7 +2,7 @@
 const {
     Events,
     VCardBuilder
-} = require("@itsreimau/gktw");
+} = require("@im-dims/baileys-library");
 const axios = require("axios");
 const fs = require("node:fs");
 const moment = require("moment-timezone");
@@ -10,7 +10,7 @@ const moment = require("moment-timezone");
 // Fungsi untuk menangani event pengguna bergabung/keluar grup
 async function handleWelcome(bot, m, type, isSimulate = false) {
     const groupJid = m.id;
-    const groupId = bot.getId(m.id);
+    const groupId = tools.cmd.getId(m.id);
     const groupDb = await db.get(`group.${groupId}`) || {};
     const botDb = await db.get("bot") || {};
 
@@ -23,7 +23,7 @@ async function handleWelcome(bot, m, type, isSimulate = false) {
 
     for (const jid of m.participants) {
         const isWelcome = type === Events.UserJoin;
-        const userTag = `@${bot.getId(jid)}`;
+        const userTag = `@${tools.cmd.getId(jid)}`;
         const customText = isWelcome ? groupDb?.text?.welcome : groupDb?.text?.goodbye;
         const metadata = await bot.core.groupMetadata(groupJid);
         const text = customText ?
@@ -67,7 +67,7 @@ async function handleWelcome(bot, m, type, isSimulate = false) {
 
 // Fungsi untuk menambahkan warning
 async function addWarning(ctx, groupDb, senderJid, groupId) {
-    const senderId = ctx.getId(senderJid);
+    const senderId = tools.cmd.getId(senderJid);
     const maxWarnings = groupDb?.maxwarnings || 3;
 
     const warnings = groupDb?.warnings || [];
@@ -119,7 +119,7 @@ module.exports = (bot) => {
         }
 
         // Tetapkan config pada bot
-        const id = bot.getId(m.user.id);
+        const id = tools.cmd.getId(m.user.id);
         config.bot = {
             ...config.bot,
             id,
@@ -136,9 +136,9 @@ module.exports = (bot) => {
         const isGroup = ctx.isGroup();
         const isPrivate = !isGroup;
         const senderJid = ctx.sender.jid;
-        const senderId = ctx.getId(senderJid);
+        const senderId = tools.cmd.getId(senderJid);
         const groupJid = isGroup ? ctx.id : null;
-        const groupId = isGroup ? ctx.getId(groupJid) : null;
+        const groupId = isGroup ? tools.cmd.getId(groupJid) : null;
         const isOwner = tools.cmd.isOwner(senderId, m.key.id);
         const isCmd = tools.cmd.isCmd(m.content, ctx.bot);
         const isAdmin = isGroup ? await ctx.group().isAdmin(senderJid) : false;
@@ -170,6 +170,12 @@ module.exports = (bot) => {
 
             config.bot.dbSize = fs.existsSync("database.json") ? tools.msg.formatSize(fs.statSync("database.json").size / 1024) : "N/A"; // Penangan pada ukuran database
             config.bot.uptime = tools.msg.convertMsToDuration(Date.now() - config.bot.readyAt); // Penangan pada uptime
+
+            const pushNames = botDb?.pushNames || [{}];
+            if (!pushNames[0][senderJid] || pushNames[0][senderJid] !== ctx.sender.pushName) {
+                pushNames[0][senderJid] = ctx.sender.pushName;
+                db.set("bot.pushNames", pushNames);
+            }
 
             // Penanganan database pengguna
             if (isOwner || userDb?.premium) db.set(`user.${senderId}.coin`, 0);
@@ -221,7 +227,7 @@ module.exports = (bot) => {
             }
 
             // Penanganan AFK (Pengguna yang disebutkan atau di-balas/quote)
-            const userMentions = ctx?.quoted?.senderJid ? [ctx.getId(ctx?.quoted?.senderJid)] : ctx.getMentioned().map((jid) => ctx.getId(jid)) || [];
+            const userMentions = ctx?.quoted?.senderJid ? [tools.cmd.getId(ctx?.quoted?.senderJid)] : ctx.getMentioned().map((jid) => tools.cmd.getId(jid)) || [];
             if (userMentions.length > 0) {
                 for (const userMention of userMentions) {
                     const userMentionAfk = await db.get(`user.${userMention}.afk`) || {};

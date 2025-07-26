@@ -1,6 +1,6 @@
 module.exports = {
-    name: "broadcastgc",
-    aliases: ["bc", "bcgc", "broadcast"],
+    name: "broadcasttagsw",
+    aliases: ["bctagsw"],
     category: "owner",
     permissions: {
         owner: true
@@ -13,6 +13,14 @@ module.exports = {
             `${formatter.quote(tools.msg.generateCmdExample(ctx.used, "halo, dunia!"))}\n` +
             formatter.quote(tools.msg.generateNotes(["Balas atau quote pesan untuk menjadikan teks sebagai input target, jika teks memerlukan baris baru.", `Gunakan ${formatter.inlineCode("blacklist")} untuk memasukkan grup ke dalam blacklist. (Hanya berfungsi pada grup)`]))
         );
+
+        const messageType = ctx.getMessageType();
+        const [checkMedia, checkQuotedMedia] = await Promise.all([
+            tools.cmd.checkMedia(messageType, ["image", "gif", "video"]),
+            tools.cmd.checkQuotedMedia(ctx?.quoted, ["image", "gif", "video"])
+        ]);
+
+        if (!checkMedia && !checkQuotedMedia) return await ctx.reply(formatter.quote(tools.msg.generateInstruction(["send", "reply"], ["image", "gif", "video"])));
 
         if (ctx.args[0]?.toLowerCase() === "blacklist" && ctx.isGroup()) {
             let blacklist = await db.get("bot.blacklistBroadcast") || [];
@@ -41,26 +49,12 @@ module.exports = {
             for (const groupId of filteredGroupIds) {
                 await delay(500);
                 try {
-                    const contextInfo = {
-                        isForwarded: true,
-                        forwardedNewsletterMessageInfo: {
-                            newsletterJid: config.bot.newsletterJid,
-                            newsletterName: config.bot.name
-                        },
-                        externalAdReply: {
-                            title: config.bot.name,
-                            body: config.bot.version,
-                            mediaType: 1,
-                            thumbnailUrl: config.bot.thumbnail,
-                            renderLargerThumbnail: true
-                        }
-                    };
+                    const mediaType = checkMedia || checkQuotedMedia;
+                    const buffer = await ctx.msg.media.toBuffer() || await ctx.quoted.media.toBuffer();
 
-                    await ctx.sendMessage(groupId, {
-                        text: input,
-                        contextInfo
-                    }, {
-                        quoted: tools.cmd.fakeMetaAiQuotedText(config.msg.footer)
+                    await ctx.core.sendStatusMentions(groupId, {
+                        [mediaType]: buffer,
+                        caption: input
                     });
                 } catch (error) {
                     failedGroupIds.push(groupId);

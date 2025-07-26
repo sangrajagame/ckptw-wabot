@@ -4,7 +4,7 @@ const events = require("./events/handler.js");
 const {
     Client,
     CommandHandler
-} = require("@itsreimau/gktw");
+} = require("@im-dims/baileys-library");
 const path = require("node:path");
 const util = require("node:util");
 
@@ -17,7 +17,7 @@ const {
     authAdapter
 } = botConfig;
 
-// Pilih adapter autentikasi sesuai dengan konfigurasi
+// Pilih adapter autentikasi
 const adapters = {
     mysql: () => require("baileys-mysql").useSqlAuthState(authAdapter.mysql),
     mongodb: () => require("baileys-mongodb").useMongoAuthState(authAdapter.mongodb.url),
@@ -27,7 +27,7 @@ const selectedAuthAdapter = adapters[authAdapter.adapter] ? adapters[authAdapter
 
 consolefy.log("Connecting..."); // Logging proses koneksi
 
-// Buat instance bot dengan pengaturan yang sesuai
+// Buat instance bot
 const bot = new Client({
     prefix: botConfig.prefix,
     phoneNumber: botConfig.phoneNumber,
@@ -37,7 +37,6 @@ const bot = new Client({
     printQRInTerminal: !system.usePairingCode,
     markOnlineOnConnect: system.alwaysOnline,
     usePairingCode: system.usePairingCode,
-    customPairingCode: system.customPairingCode,
     selfReply: system.selfReply,
     autoMention: system.autoMention
 });
