@@ -5,13 +5,9 @@ module.exports = {
         group: true
     },
     code: async (ctx) => {
-        try {
-            return await ctx.reply({
-                text: `@${ctx.getId(ctx.sender.jid)}`,
-                mentions: [ctx.sender.jid]
-            });
-        } catch (error) {
-            return await tools.cmd.handleError(ctx, error);
-        }
+        return await ctx.reply({
+            text: `@${ctx.getId(ctx.sender.jid)}`,
+            mentions: [ctx.sender.jid]
+        });
     }
 };

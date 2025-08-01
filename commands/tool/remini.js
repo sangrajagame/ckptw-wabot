@@ -1,9 +1,3 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-const axios = require("axios");
-const mime = require("mime-types");
-
 module.exports = {
     name: "remini",
     category: "tool",
@@ -11,27 +5,27 @@ module.exports = {
         coin: 10
     },
     code: async (ctx) => {
-        const messageType = ctx.getMessageType();
         const [checkMedia, checkQuotedMedia] = await Promise.all([
-            tools.cmd.checkMedia(messageType, "image"),
-            tools.cmd.checkQuotedMedia(ctx.quoted, "image")
+            tools.cmd.checkMedia(ctx.msg.contentType, "image"),
+            tools.cmd.checkQuotedMedia(ctx?.quoted?.contentType, "image")
         ]);
 
-        if (!checkMedia && !checkQuotedMedia) return await ctx.reply(quote(tools.msg.generateInstruction(["send", "reply"], "image")));
+        if (!checkMedia && !checkQuotedMedia) return await ctx.reply(formatter.quote(tools.msg.generateInstruction(["send", "reply"], "image")));
 
         try {
             const buffer = await ctx.msg.media.toBuffer() || await ctx.quoted.media.toBuffer();
             const uploadUrl = await tools.cmd.upload(buffer, "image");
-            const apiUrl = tools.api.createUrl("falcon", "/imagecreator/remini", {
+            const apiUrl = tools.api.createUrl("davidcyril", "/remini", {
                 url: uploadUrl
             });
-            const result = (await axios.get(apiUrl)).data.result;
 
             return await ctx.reply({
                 image: {
-                    url: apiUrl
+                    url: result
                 },
-                mimetype: mime.lookup("jpg")
+                mimetype: tools.mime.lookup("jpg"),
+                caption: formatter.quote("Untukmu, tuan!"),
+                footer: config.msg.footer
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

@@ -1,5 +1,7 @@
+const {
+    AlbumBuilder
+} = require("@itsreimau/gktw");
 const axios = require("axios");
-const mime = require("mime-types");
 
 module.exports = {
     name: "ppcouple",
@@ -9,25 +11,19 @@ module.exports = {
         coin: 10
     },
     code: async (ctx) => {
-        const apiUrl = tools.api.createUrl("https://sandipbaruwal.onrender.com", "/dp");
-
         try {
+            const apiUrl = tools.api.createUrl("https://sandipbaruwal.onrender.com", "/dp");
             const result = (await axios.get(apiUrl)).data;
+            const album = new AlbumBuilder()
+                .addImageUrl(result.male)
+                .addImageUrl(result.female)
+                .build();
 
-            return await Promise.all([
-                ctx.reply({
-                    image: {
-                        url: result.male
-                    },
-                    mimetype: mime.lookup("jpg")
-                }),
-                ctx.reply({
-                    image: {
-                        url: result.female
-                    },
-                    mimetype: mime.lookup("jpg")
-                })
-            ]);
+            return await ctx.reply({
+                album: album,
+                caption: formatter.quote("Untukmu, tuan!"),
+                footer: config.msg.footer
+            });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);
         }

@@ -1,8 +1,7 @@
 const {
-    quote
-} = require("@itsreimau/ckptw-mod");
+    ButtonBuilder
+} = require("@itsreimau/gktw");
 const axios = require("axios");
-const mime = require("mime-types");
 
 module.exports = {
     name: "fufufafa",
@@ -11,19 +10,20 @@ module.exports = {
         coin: 10
     },
     code: async (ctx) => {
-        const apiUrl = tools.api.createUrl("https://fufufafapi.vanirvan.my.id", "/api");
-
         try {
+            const apiUrl = tools.api.createUrl("https://fufufafapi.vanirvan.my.id", "/api");
             const result = tools.cmd.getRandomElement((await axios.get(apiUrl)).data);
 
             return await ctx.reply({
                 image: {
                     url: result.image_url
                 },
-                mimetype: mime.lookup("jpg"),
-                caption: `${quote(`Doksli: ${result.doksli}`)}\n` +
-                    "\n" +
-                    config.msg.footer
+                mimetype: tools.mime.lookup("jpg"),
+                caption: formatter.quote(`Doksli: ${result.doksli}`),
+                footer: config.msg.footer,
+                buttons: new ButtonBuilder()
+                    .regulerButton("Ambil Lagi", ctx.used.prefix + ctx.used.command)
+                    .build()
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

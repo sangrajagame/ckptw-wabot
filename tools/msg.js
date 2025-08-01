@@ -1,30 +1,31 @@
-// Impor modul dan dependensi yang diperlukan
-const {
-    monospace,
-    quote
-} = require("@itsreimau/ckptw-mod");
+const bytes = ["yBytes", "zBytes", "aBytes", "fBytes", "pBytes", "nBytes", "µBytes", "mBytes", "Bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"];
 
-function convertMsToDuration(ms) {
-    if (ms < 1000) return "kurang satu detik";
+function convertMsToDuration(ms, units = []) {
+    const time = {
+        tahun: Math.floor(ms / 31557600000),
+        bulan: Math.floor(ms / 2629800000) % 12,
+        minggu: Math.floor(ms / 604800000) % 4,
+        hari: Math.floor(ms / 86400000) % 7,
+        jam: Math.floor(ms / 3600000) % 24,
+        menit: Math.floor(ms / 60000) % 60,
+        detik: Math.floor(ms / 1000) % 60,
+        milidetik: Math.floor(ms % 1000)
+    };
 
-    const years = Math.floor(ms / (1000 * 60 * 60 * 24 * 365.25));
-    const months = Math.floor((ms / (1000 * 60 * 60 * 24 * 30.44)) % 12);
-    const weeks = Math.floor((ms / (1000 * 60 * 60 * 24 * 7)) % 4.345);
-    const days = Math.floor((ms / (1000 * 60 * 60 * 24)) % 7);
-    const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
-    const minutes = Math.floor((ms / (1000 * 60)) % 60);
-    const seconds = Math.floor((ms / 1000) % 60);
+    if (units.length) return units.map(unit => `${time[unit]} ${unit}`).join(" ");
 
-    const parts = [];
-    if (years) parts.push(`${years} tahun`);
-    if (months) parts.push(`${months} bulan`);
-    if (weeks) parts.push(`${weeks} minggu`);
-    if (days) parts.push(`${days} hari`);
-    if (hours) parts.push(`${hours} jam`);
-    if (minutes) parts.push(`${minutes} menit`);
-    if (seconds) parts.push(`${seconds} detik`);
+    const result = [];
+    for (const [unit, value] of Object.entries(time)) {
+        if (value > 0) {
+            if (unit === "milidetik") {
+                if (ms < 1000) result.push(`${value} ${unit}`);
+            } else {
+                result.push(`${value} ${unit}`);
+            }
+        }
+    }
 
-    return parts.length > 0 ? parts.join(" ") : "0 detik";
+    return result.length ? result.join(" ") : ms < 1000 ? `${ms} milidetik` : "0 detik";
 }
 
 function convertSecondToTimecode(seconds) {
@@ -39,7 +40,24 @@ function convertSecondToTimecode(seconds) {
 function formatSize(byteCount) {
     if (!byteCount) return "0 yBytes";
 
-    const units = ["yBytes", "zBytes", "aBytes", "fBytes", "pBytes", "nBytes", "µBytes", "mBytes", "Bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"];
+    let index = 8;
+    let size = byteCount;
+
+    while (size < 1 && index > 0) {
+        size *= 1024;
+        index--;
+    }
+
+    while (size >= 1024 && index < bytes.length - 1) {
+        size /= 1024;
+        index++;
+    }
+
+    return `${size.toFixed(2)} ${bytes[index]}`;
+}
+
+function formatSizePerSecond(byteCount) {
+    if (!byteCount) return "0 yBytes/s";
 
     let index = 8;
     let size = byteCount;
@@ -49,24 +67,24 @@ function formatSize(byteCount) {
         index--;
     }
 
-    while (size >= 1024 && index < units.length - 1) {
+    while (size >= 1024 && index < bytes.length - 1) {
         size /= 1024;
         index++;
     }
 
-    return `${size.toFixed(2)} ${units[index]}`;
+    return `${size.toFixed(2)} ${bytes[index]}/s`;
 }
 
 function generateCmdExample(used, args) {
-    if (!used) return "'used' harus diberikan!";
-    if (!args) return "'args' harus diberikan!";
+    if (!used) return `${formatter.inlineCode("used")} harus diberikan!`;
+    if (!args) return `${formatter.inlineCode("args")} harus diberikan!`;
 
-    const cmdMsg = `Contoh: ${monospace(`${used.prefix + used.command} ${args}`)}`;
+    const cmdMsg = `Contoh: ${formatter.inlineCode(`${used.prefix + used.command} ${args}`)}`;
     return cmdMsg;
 }
 
 function generateInstruction(actions, mediaTypes) {
-    if (!actions || !actions.length) return "'actions' yang diperlukan harus ditentukan!";
+    if (!actions || !actions.length) return `${formatter.inlineCode("actions")} yang diperlukan harus ditentukan!`;
 
     let translatedMediaTypes;
     if (typeof mediaTypes === "string") {
@@ -74,7 +92,7 @@ function generateInstruction(actions, mediaTypes) {
     } else if (Array.isArray(mediaTypes)) {
         translatedMediaTypes = mediaTypes;
     } else {
-        return "'mediaTypes' harus berupa string atau array string!";
+        return `${formatter.inlineCode("mediaTypes")} harus berupa string atau array string!`;
     }
 
     const mediaTypeTranslations = {
@@ -109,18 +127,18 @@ function generateInstruction(actions, mediaTypes) {
 }
 
 function generatesFlagInfo(flags) {
-    if (typeof flags !== "object" || !flags) return "'flags' harus berupa objek!";
+    if (typeof flags !== "object" || !flags) return `${formatter.inlineCode("flags")} harus berupa objek!`;
 
     const flagInfo = "Flag:\n" +
-        Object.entries(flags).map(([flag, description]) => quote(`• ${monospace(flag)}: ${description}`)).join("\n");
+        Object.entries(flags).map(([flag, description]) => formatter.quote(`• ${formatter.inlineCode(flag)}: ${description}`)).join("\n");
     return flagInfo;
 }
 
 function generateNotes(notes) {
-    if (!Array.isArray(notes)) return "'notes' harus berupa string!";
+    if (!Array.isArray(notes)) return `${formatter.inlineCode("notes")} harus berupa string!`;
 
     const notesMsg = "Catatan:\n" +
-        notes.map(note => quote(`• ${note}`)).join("\n");
+        notes.map(note => formatter.quote(`• ${note}`)).join("\n");
     return notesMsg;
 }
 
@@ -134,6 +152,7 @@ module.exports = {
     convertMsToDuration,
     convertSecondToTimecode,
     formatSize,
+    formatSizePerSecond,
     generateCmdExample,
     generateInstruction,
     generatesFlagInfo,

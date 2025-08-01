@@ -1,11 +1,11 @@
 // Impor modul dan dependensi yang diperlukan
 const {
     Cooldown,
-    monospace,
-    quote
-} = require("@itsreimau/ckptw-mod");
+    ButtonBuilder
+} = require("@itsreimau/gktw");
+const moment = require("moment-timezone");
 
-// Fungsi untuk mengecek apakah pengguna memiliki cukup koin sebelum menggunakan perintah tertentu
+// Fungsi untuk mengecek koin pengguna
 async function checkCoin(requiredCoin, userDb, senderId, isOwner) {
     if (isOwner || userDb?.premium) return false;
     if (userDb?.coin < requiredCoin) return true;
@@ -18,23 +18,27 @@ module.exports = (bot) => {
     bot.use(async (ctx, next) => {
         // Variabel umum
         const isGroup = ctx.isGroup();
-        const isPrivate = !isGroup;
+        const isPrivate = ctx.isPrivate();
         const senderJid = ctx.sender.jid;
         const senderId = ctx.getId(senderJid);
         const groupJid = isGroup ? ctx.id : null;
         const groupId = isGroup ? ctx.getId(groupJid) : null;
         const isOwner = tools.cmd.isOwner(senderId, ctx.msg.key.id);
+        const isAdmin = isGroup ? await ctx.group().isAdmin(senderJid) : false;
 
-        // Mengambil data bot, pengguna, dan grup dari database
+        // Mengambil database
         const botDb = await db.get("bot") || {};
         const userDb = await db.get(`user.${senderId}`) || {};
         const groupDb = await db.get(`group.${groupId}`) || {};
 
         // Pengecekan mode bot (group, private, self)
-        if ((botDb?.mode === "group" && isPrivate) || (botDb?.mode === "private" && isGroup) || (botDb?.mode === "self" && !isOwner)) return;
-        if ((groupDb?.mutebot === true && (!isOwner && !await ctx.group().isSenderAdmin())) || (groupDb?.mutebot === "owner" && !isOwner)) return;
+        if (botDb?.mode === "group" && isPrivate && !isOwner && !userDb?.premium) return;
+        if (botDb?.mode === "private" && isGroup && !isOwner && !userDb?.premium) return;
+        if (botDb?.mode === "self" && !isOwner) return;
 
         // Pengecekan mute pada grup
+        if (groupDb?.mutebot === true && !isOwner && !isAdmin) return;
+        if (groupDb?.mutebot === "owner" && !isOwner) return;
         const muteList = groupDb?.mute || [];
         if (muteList.includes(senderId)) return;
 
@@ -49,17 +53,11 @@ module.exports = (bot) => {
             if (userDb?.autolevelup) {
                 const profilePictureUrl = await ctx.core.profilePictureUrl(ctx.sender.jid, "image").catch(() => "https://i.pinimg.com/736x/70/dd/61/70dd612c65034b88ebf474a52ccc70c4.jpg");
                 await ctx.reply({
-                    text: `${quote(`Selamat! Kamu telah naik ke level ${newUserLevel}!`)}\n` +
-                        `${config.msg.readmore}\n` +
-                        quote(tools.msg.generateNotes([`Terganggu? Ketik ${monospace(`${ctx.used.prefix}setprofile autolevelup`)} untuk menonaktifkan pesan autolevelup.`])),
-                    contextInfo: {
-                        externalAdReply: {
-                            title: config.bot.name,
-                            body: config.bot.version,
-                            mediaType: 1,
-                            thumbnailUrl: profilePictureUrl
-                        }
-                    }
+                    text: formatter.quote(`🎊 Selamat! Kamu telah naik ke level ${newUserLevel}.`),
+                    footer: config.msg.footer,
+                    buttons: new ButtonBuilder()
+                        .regulerButton("Nonaktifkan Autolevelup", `${ctx.used.prefix}setprofile autolevelup`)
+                        .build()
                 });
             }
 
@@ -69,9 +67,9 @@ module.exports = (bot) => {
             await db.set(`user.${senderId}.xp`, newUserXp);
         }
 
-        // Simulasi mengetik jika diaktifkan dalam konfigurasi
-        const simulateTyping = async () => {
-            if (config.system.autoTypingOnCmd) await ctx.simulateTyping();
+        // Simulasi mengetik
+        const simulateTyping = () => {
+            if (config.system.autoTypingOnCmd) ctx.simulateTyping();
         };
 
         // Pengecekan kondisi restrictions
@@ -88,22 +86,31 @@ module.exports = (bot) => {
                 reaction: "💤"
             },
             {
+                key: "gamerestrict",
+                condition: groupDb?.option?.gamerestrict && isGroup && !isAdmin && ctx.bot.cmd.has(ctx.used.command) && ctx.bot.cmd.get(ctx.used.command).category === "game",
+                msg: config.msg.gamerestrict,
+                reaction: "🎮"
+            }, {
                 key: "requireBotGroupMembership",
-                condition: config.system.requireBotGroupMembership && ctx.used.command !== "botgroup" && !isOwner && !userDb?.premium && !(ctx.group(config.bot.groupJid)).members().some((member) => ctx.getId(member.id) === senderJid),
+                condition: config.system.requireBotGroupMembership && !isOwner && !userDb?.premium && ctx.used.command !== "botgroup" && config.bot.groupJid && !(await ctx.group(config.bot.groupJid).members()).some(member => member.id === senderJid),
                 msg: config.msg.botGroupMembership,
                 reaction: "🚫"
             },
             {
                 key: "requireGroupSewa",
-                condition: config.system.requireGroupSewa && isGroup && groupDb?.sewa !== true && !isOwner,
+                condition: config.system.requireGroupSewa && isGroup && !isOwner && !["owner", "price"].includes(ctx.used.command) && groupDb?.sewa !== true,
                 msg: config.msg.groupSewa,
                 reaction: "🔒"
             },
             {
-                key: "gamerestrict",
-                condition: groupDb?.option?.gamerestrict && ctx.bot.cmd.has(ctx.used.command) && ctx.bot.cmd.get(ctx.used.command).category === "game",
-                msg: config.msg.gamerestrict,
-                reaction: "🎮"
+                key: "unavailableAtNight",
+                condition: (() => {
+                    const now = moment().tz(config.system.timeZone);
+                    const hour = now.hour();
+                    return config.system.unavailableAtNight && !isOwner && !userDb?.premium && hour >= 0 && hour < 6;
+                })(),
+                msg: config.msg.unavailableAtNight,
+                reaction: "😴"
             }
         ];
 
@@ -119,12 +126,11 @@ module.exports = (bot) => {
                 const lastSentMsg = userDb?.lastSentMsg?.[key] || 0;
                 const oneDay = 24 * 60 * 60 * 1000;
                 if (!lastSentMsg || (now - lastSentMsg) > oneDay) {
-                    await simulateTyping();
-                    await ctx.reply(
-                        `${msg}\n` +
-                        `${config.msg.readmore}\n` +
-                        quote(tools.msg.generateNotes([`Respon selanjutnya akan berupa reaksi emoji '${reaction}'.`]))
-                    );
+                    simulateTyping();
+                    await ctx.reply({
+                        text: msg,
+                        footer: formatter.italic(`Respon selanjutnya akan berupa reaksi emoji ${formatter.inlineCode(reaction)}.`)
+                    });
                     return await db.set(`user.${senderId}.lastSentMsg.${key}`, now);
                 } else {
                     return await ctx.react(ctx.id, reaction);
@@ -140,7 +146,7 @@ module.exports = (bot) => {
         } = command;
         const permissionChecks = [{
                 key: "admin",
-                condition: isGroup && !await ctx.group().isSenderAdmin(),
+                condition: isGroup && !isAdmin,
                 msg: config.msg.admin,
                 reaction: "🛡️"
             },
@@ -200,12 +206,11 @@ module.exports = (bot) => {
                 const lastSentMsg = userDb?.lastSentMsg?.[key] || 0;
                 const oneDay = 24 * 60 * 60 * 1000;
                 if (!lastSentMsg || (now - lastSentMsg) > oneDay) {
-                    await simulateTyping();
-                    await ctx.reply(
-                        `${msg}\n` +
-                        `${config.msg.readmore}\n` +
-                        quote(tools.msg.generateNotes([`Respon selanjutnya akan berupa reaksi emoji '${reaction}'.`]))
-                    );
+                    simulateTyping();
+                    await ctx.reply({
+                        text: msg,
+                        footer: formatter.italic(`Respon selanjutnya akan berupa reaksi emoji ${formatter.inlineCode(reaction)}.`)
+                    });
                     return await db.set(`user.${senderId}.lastSentMsg.${key}`, now);
                 } else {
                     return await ctx.react(ctx.id, reaction);
@@ -213,7 +218,7 @@ module.exports = (bot) => {
             }
         }
 
-        await simulateTyping();
-        await next(); // Lanjut ke proses berikutnya jika semua kondisi terpenuhi
+        simulateTyping();
+        await next(); // Lanjut ke proses berikutnya
     });
 };

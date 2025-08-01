@@ -1,6 +1,3 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
 const axios = require("axios");
 
 module.exports = {
@@ -14,29 +11,28 @@ module.exports = {
         const input = ctx.args.join(" ") || null;
 
         if (!input) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            quote(tools.msg.generateCmdExample(ctx.used, "evangelion"))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            formatter.quote(tools.msg.generateCmdExample(ctx.used, "evangelion"))
         );
 
         try {
-            const apiUrl = tools.api.createUrl("skyzopedia", "/search/sfile", {
+            const apiUrl = tools.api.createUrl("archive", "/api/search/sfile", {
                 query: input
             });
             const result = (await axios.get(apiUrl)).data.result;
 
             const resultText = result.map(r =>
-                `${quote(`Nama: ${r.title}`)}\n` +
-                `${quote(`Ukuran: ${r.size}`)}\n` +
-                `${quote(`URL: ${r.link}`)}`
+                `${formatter.quote(`Nama: ${r.title}`)}\n` +
+                `${formatter.quote(`Ukuran: ${r.size}`)}\n` +
+                formatter.quote(`URL: ${r.link}`)
             ).join(
                 "\n" +
-                `${quote("─────")}\n`
+                `${formatter.quote("─────")}\n`
             );
-            return await ctx.reply(
-                `${resultText || config.msg.notFound}\n` +
-                "\n" +
-                config.msg.footer
-            );
+            return await ctx.reply({
+                text: resultText || config.msg.notFound,
+                footer: config.msg.footer
+            });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);
         }

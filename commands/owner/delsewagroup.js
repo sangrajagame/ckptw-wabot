@@ -1,7 +1,3 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-
 module.exports = {
     name: "delsewagroup",
     aliases: ["delsewa", "delsewagrup", "dsg"],
@@ -13,26 +9,46 @@ module.exports = {
         const groupJid = ctx.isGroup() ? ctx.id : (ctx.args[0] ? `${ctx.args[0].replace(/[^\d]/g, "")}@g.us` : null);
 
         if (!groupJid) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            `${quote(tools.msg.generateCmdExample(ctx.used, "1234567890"))}\n` +
-            quote(tools.msg.generateNotes(["Gunakan di grup untuk otomatis menghapus sewa grup tersebut."]))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            `${formatter.quote(tools.msg.generateCmdExample(ctx.used, "1234567890"))}\n` +
+            `${formatter.quote(tools.msg.generateNotes(["Gunakan di grup untuk otomatis menghapus sewa grup tersebut."]))}\n` +
+            formatter.quote(tools.msg.generatesFlagInfo({
+                "-s": "Tetap diam dengan tidak menyiarkan ke orang yang relevan"
+            }))
         );
 
-        const groupMetadata = await ctx.group(groupJid).metadata() || null;
-
-        if (!groupMetadata) return await ctx.reply(quote("❎ Grup tidak valid atau bot tidak ada di grup tersebut!"));
+        if (!await ctx.group(groupJid)) return await ctx.reply(formatter.quote("❎ Grup tidak valid atau bot tidak ada di grup tersebut!"));
 
         try {
-            const groupId = ctx.getId(groupJid) || null;
+            const groupId = ctx.getId(groupJid);
 
             await db.delete(`group.${groupId}.sewa`);
             await db.delete(`group.${groupId}.sewaExpiration`);
 
-            if (groupMetadata?.owner) await ctx.sendMessage(groupMetadata.owner, {
-                text: quote(`🎉 Sewa bot untuk grup ${groupMetadata.subject} telah dihentikan oleh Owner!`)
+            const flag = tools.cmd.parseFlag(ctx.args.join(" "), {
+                "-s": {
+                    type: "boolean",
+                    key: "silent"
+                }
             });
 
-            return await ctx.reply(quote(`✅ Berhasil menghapus sewa bot untuk grup ${groupMetadata.subject}!`));
+            const silent = flag?.silent || false;
+            const group = await ctx.group(groupJid);
+            const groupOwner = await group.owner();
+            if (!silent && groupOwner) {
+                const groupMentions = [{
+                    groupJid: `${group.id}@g.us`,
+                    groupSubject: await group.name()
+                }];
+                await ctx.sendMessage(groupOwner, {
+                    text: formatter.quote(`📢 Sewa bot untuk grup @${groupMentions.groupJid} telah dihentikan oleh Owner!`),
+                    contextInfo: {
+                        groupMentions
+                    }
+                });
+            }
+
+            return await ctx.reply(formatter.quote(`✅ Berhasil menghapus sewa bot untuk grup ini!`));
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);
         }

@@ -1,8 +1,3 @@
-const {
-    monospace,
-    quote
-} = require("@itsreimau/ckptw-mod");
-
 module.exports = {
     name: "setprofile",
     aliases: ["set", "setp", "setprof"],
@@ -11,14 +6,17 @@ module.exports = {
         const input = ctx.args.join(" ") || null;
 
         if (!input) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            `${quote(tools.msg.generateCmdExample(ctx.used, "autolevelup"))}\n` +
-            quote(tools.msg.generateNotes([`Ketik ${monospace(`${ctx.used.prefix + ctx.used.command} list`)} untuk melihat daftar.`]))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            `${formatter.quote(tools.msg.generateCmdExample(ctx.used, "autolevelup"))}\n` +
+            formatter.quote(tools.msg.generateNotes([`Ketik ${formatter.inlineCode(`${ctx.used.prefix + ctx.used.command} list`)} untuk melihat daftar.`]))
         );
 
-        if (["l", "list"].includes(input.toLowerCase())) {
+        if (input.toLowerCase() === "list") {
             const listText = await tools.list.get("setprofile");
-            return await ctx.reply(listText);
+            return await ctx.reply({
+                text: listText,
+                footer: config.msg.footer
+            });
         }
 
         try {
@@ -29,17 +27,16 @@ module.exports = {
             switch (command) {
                 case "username": {
                     const input = args.slice(1).join(" ").trim();
-                    if (!input) return await ctx.reply(quote("❎ Mohon masukkan username yang ingin digunakan."));
 
-                    if (/[^a-zA-Z0-9._-]/.test(input)) return await ctx.reply(quote("❎ Username hanya boleh berisi huruf, angka, titik (.), underscore (_) atau tanda hubung (-)."));
+                    if (!input) return await ctx.reply(formatter.quote("❎ Mohon masukkan username yang ingin digunakan."));
+                    if (/[^a-zA-Z0-9._-]/.test(input)) return await ctx.reply(formatter.quote("❎ Username hanya boleh berisi huruf, angka, titik (.), underscore (_) atau tanda hubung (-)."));
 
-                    const allUsers = await db.get("user") || {};
-                    const usernameTaken = Object.values(allUsers).some(user => user.username === input);
-                    if (usernameTaken) return await ctx.reply(quote("❎ Username tersebut sudah digunakan oleh pengguna lain."));
+                    const usernameTaken = Object.values(await db.get("user") || {}).some(user => user.username === input);
+                    if (usernameTaken) return await ctx.reply(formatter.quote("❎ Username tersebut sudah digunakan oleh pengguna lain."));
 
                     const username = `@${input}`
                     await db.set(`user.${senderId}.username`, username);
-                    return await ctx.reply(quote(`✅ Username berhasil diubah menjadi '${username}'!`));
+                    return await ctx.reply(formatter.quote(`✅ Username berhasil diubah menjadi ${formatter.inlineCode(username)}!`));
                     break;
                 }
                 case "autolevelup": {
@@ -49,11 +46,11 @@ module.exports = {
                     await db.set(setKey, newStatus);
 
                     const statusText = newStatus ? "diaktifkan" : "dinonaktifkan";
-                    return await ctx.reply(quote(`✅ Fitur '${command}' berhasil ${statusText}!`));
+                    return await ctx.reply(formatter.quote(`✅ Autolevelup berhasil ${statusText}!`));
                     break;
                 }
                 default:
-                    return await ctx.reply(quote("❎ Teks tidak valid."));
+                    return await ctx.reply(formatter.quote(`❎ Setelan ${formatter.inlineCode(input)} tidak valid.`));
             }
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);

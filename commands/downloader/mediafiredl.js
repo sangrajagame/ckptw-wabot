@@ -1,8 +1,4 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
 const axios = require("axios");
-const mime = require("mime-types");
 
 module.exports = {
     name: "mediafiredl",
@@ -15,28 +11,27 @@ module.exports = {
         const url = ctx.args[0] || null;
 
         if (!url) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            quote(tools.msg.generateCmdExample(ctx.used, "https://www.mediafire.com/file/on2jvy5540bi22u/humanity-turned-into-lcl-scene.mp4/file"))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            formatter.quote(tools.msg.generateCmdExample(ctx.used, "https://www.mediafire.com/file/on2jvy5540bi22u/humanity-turned-into-lcl-scene.mp4/file"))
         );
 
         const isUrl = await tools.cmd.isUrl(url);
         if (!isUrl) return await ctx.reply(config.msg.urlInvalid);
 
         try {
-            const apiUrl = tools.api.createUrl("archive", "/api/download/mediafire", {
+            const apiUrl = tools.api.createUrl("nekorinn", "/downloader/mediafire", {
                 url
             });
             const result = (await axios.get(apiUrl)).data.result;
 
             return await ctx.reply({
                 document: {
-                    url: result.download_link
+                    url: result.download.url
                 },
-                fileName: data.title,
-                mimetype: mime.lookup(data.mime_type) || "application/octet-stream",
-                caption: `${quote(`URL: ${url}`)}\n` +
-                    "\n" +
-                    config.msg.footer
+                fileName: data.fileName,
+                mimetype: data.mimetype || "application/octet-stream",
+                caption: formatter.quote(`URL: ${url}`),
+                footer: config.msg.footer
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

@@ -1,8 +1,4 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
 const axios = require("axios");
-const mime = require("mime-types");
 
 module.exports = {
     name: "youtubevideo",
@@ -15,11 +11,11 @@ module.exports = {
         const input = ctx.args.join(" ") || null;
 
         if (!input) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            `${quote(tools.msg.generateCmdExample(ctx.used, "https://www.youtube.com/watch?v=0Uhh62MUEic -d -q 720"))}\n` +
-            quote(tools.msg.generatesFlagInfo({
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            `${formatter.quote(tools.msg.generateCmdExample(ctx.used, "https://www.youtube.com/watch?v=0Uhh62MUEic -d -q 720"))}\n` +
+            formatter.quote(tools.msg.generatesFlagInfo({
                 "-d": "Kirim sebagai dokumen",
-                "-q <number>": "Pilihan pada kualitas video (tersedia: 360, 480, 720, 1080, 1440, 4k | default: 360)"
+                "-q <number>": "Pilihan pada kualitas video (tersedia: 360, 480, 720, 1080 | default: 720)"
             }))
         );
 
@@ -36,40 +32,38 @@ module.exports = {
             }
         });
 
-        const url = flag.input || null;
+        const url = flag?.input || null;
 
         const isUrl = await tools.cmd.isUrl(url);
         if (!isUrl) return await ctx.reply(config.msg.urlInvalid);
 
         try {
-            let quality = flag.quality || 720;
-            if (![144, 240, 360, 480, 720, 1080].includes(quality)) quality = 720;
-
-            const apiUrl = tools.api.createUrl("zell", "/download/youtube", {
+            let quality = flag?.quality || 720;
+            if (![360, 480, 720, 1080].includes(quality)) quality = 720;
+            const apiUrl = tools.api.createUrl("nekorinn", "/downloader/youtube", {
                 url,
-                format: quality
+                format: quality,
+                type: "video"
             });
-            const result = (await axios.get(apiUrl)).data;
+            const result = (await axios.get(apiUrl)).data.result;
 
-            if (flag?.document) return await ctx.reply({
+            const document = flag?.document || false;
+            if (document) return await ctx.reply({
                 document: {
-                    url: result.download
+                    url: result.downloadUrl
                 },
                 fileName: `${result.title}.mp4`,
-                mimetype: mime.lookup("mp4"),
-                caption: `${quote(`URL: ${url}`)}\n` +
-                    "\n" +
-                    config.msg.footer
+                mimetype: tools.mime.lookup("mp4"),
+                caption: formatter.quote(`URL: ${url}`),
+                footer: config.msg.footer
             });
-
             return await ctx.reply({
                 video: {
-                    url: result.download
+                    url: result.downloadUrl
                 },
-                mimetype: mime.lookup("mp4"),
-                caption: `${quote(`URL: ${url}`)}\n` +
-                    "\n" +
-                    config.msg.footer
+                mimetype: tools.mime.lookup("mp4"),
+                caption: formatter.quote(`URL: ${url}`),
+                footer: config.msg.footer
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

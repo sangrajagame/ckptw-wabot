@@ -1,8 +1,4 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
 const axios = require("axios");
-const mime = require("mime-types");
 
 module.exports = {
     name: "play",
@@ -15,9 +11,9 @@ module.exports = {
         const input = ctx.args.join(" ") || null;
 
         if (!input) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            `${quote(tools.msg.generateCmdExample(ctx.used, "one last kiss - hikaru utada -i 8 -s spotify"))}\n` +
-            quote(tools.msg.generatesFlagInfo({
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            `${formatter.quote(tools.msg.generateCmdExample(ctx.used, "one last kiss - hikaru utada -i 8 -s spotify"))}\n` +
+            formatter.quote(tools.msg.generatesFlagInfo({
                 "-i <number>": "Pilihan pada data indeks",
                 "-s <text>": "Sumber untuk memutar lagu (tersedia: soundcloud, spotify, youtube | default: youtube)"
             }))
@@ -39,9 +35,9 @@ module.exports = {
                 }
             });
 
-            const searchIndex = flag.index || 0;
-            const query = flag.input;
-            let source = flag.source || "youtube";
+            const searchIndex = flag?.index || 0;
+            const query = flag?.input;
+            let source = flag?.source || "youtube";
             if (!["soundcloud", "spotify", "youtube"].includes(source)) source = "youtube";
 
             if (source === "soundcloud") {
@@ -50,12 +46,11 @@ module.exports = {
                 });
                 const searchResult = (await axios.get(searchApiUrl)).data.result[searchIndex];
 
-                await ctx.reply(
-                    `${quote(`Judul: ${searchResult.title}`)}\n` +
-                    `${quote(`URL: ${searchResult.url}`)}\n` +
-                    "\n" +
-                    config.msg.footer
-                );
+                await ctx.reply({
+                    text: `${formatter.quote(`Judul: ${searchResult.title}`)}\n` +
+                        formatter.quote(`URL: ${searchResult.url}`),
+                    footer: config.msg.footer
+                });
 
                 const downloadApiUrl = tools.api.createUrl("falcon", "/download/soundcloud", {
                     url: searchResult.url
@@ -66,7 +61,7 @@ module.exports = {
                     audio: {
                         url: downloadResult.audioBase || downloadResult.download
                     },
-                    mimetype: mime.lookup("mp3")
+                    mimetype: tools.mime.lookup("mp3")
                 });
             }
 
@@ -76,13 +71,12 @@ module.exports = {
                 });
                 const searchResult = (await axios.get(searchApiUrl)).data.result[searchIndex];
 
-                await ctx.reply(
-                    `${quote(`Judul: ${searchResult.trackName}`)}\n` +
-                    `${quote(`Artis: ${searchResult.artistName}`)}\n` +
-                    `${quote(`URL: ${searchResult.externalUrl}`)}\n` +
-                    "\n" +
-                    config.msg.footer
-                );
+                await ctx.reply({
+                    text: `${formatter.quote(`Judul: ${searchResult.trackName}`)}\n` +
+                        `${formatter.quote(`Artis: ${searchResult.artistName}`)}\n` +
+                        formatter.quote(`URL: ${searchResult.externalUrl}`),
+                    footer: config.msg.footer
+                });
 
                 const downloadApiUrl = tools.api.createUrl("archive", "/api/download/spotify", {
                     url: searchResult.externalUrl
@@ -93,35 +87,35 @@ module.exports = {
                     audio: {
                         url: downloadResult
                     },
-                    mimetype: mime.lookup("mp3")
+                    mimetype: tools.mime.lookup("mp3")
                 });
             }
 
             if (source === "youtube") {
-                const searchApiUrl = tools.api.createUrl("skyzopedia", "/search/youtube", {
+                const searchApiUrl = tools.api.createUrl("archive", "/api/search/youtube", {
                     query
                 });
                 const searchResult = (await axios.get(searchApiUrl)).data.result[searchIndex];
 
-                await ctx.reply(
-                    `${quote(`Judul: ${searchResult.title}`)}\n` +
-                    `${quote(`Artis: ${searchResult.channel}`)}\n` +
-                    `${quote(`URL: ${searchResult.link}`)}\n` +
-                    "\n" +
-                    config.msg.footer
-                );
-
-                const downloadApiUrl = tools.api.createUrl("zell", "/download/youtube", {
-                    url: searchResult.link,
-                    format: "mp3"
+                await ctx.reply({
+                    text: `${formatter.quote(`Judul: ${searchResult.title}`)}\n` +
+                        `${formatter.quote(`Artis: ${searchResult.channel}`)}\n` +
+                        formatter.quote(`URL: ${searchResult.link}`),
+                    footer: config.msg.footer
                 });
-                const downloadResult = (await axios.get(downloadApiUrl)).data.download;
+
+                const downloadApiUrl = tools.api.createUrl("nekorinn", "/downloader/youtube", {
+                    url: searchResult.link,
+                    format: 320,
+                    type: "audio"
+                });
+                const downloadResult = (await axios.get(downloadApiUrl)).data.result.downloadUrl;
 
                 return await ctx.reply({
                     audio: {
                         url: downloadResult
                     },
-                    mimetype: mime.lookup("mp3")
+                    mimetype: tools.mime.lookup("mp3")
                 });
             }
         } catch (error) {

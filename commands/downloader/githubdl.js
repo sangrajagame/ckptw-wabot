@@ -1,8 +1,4 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
 const axios = require("axios");
-const mime = require("mime-types");
 
 module.exports = {
     name: "githubdl",
@@ -15,8 +11,8 @@ module.exports = {
         const url = ctx.args[0] || null;
 
         if (!url) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            quote(tools.msg.generateCmdExample(ctx.used, "https://github.com/itsreimau/ckptw-wabot"))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            formatter.quote(tools.msg.generateCmdExample(ctx.used, "https://github.com/itsreimau/gaxtawu"))
         );
 
         const isUrl = await tools.cmd.isUrl(url);
@@ -33,10 +29,9 @@ module.exports = {
                     url: result.urllink
                 },
                 fileName: result.filename,
-                mimetype: mime.lookup(result.filename) || "application/octet-stream",
-                caption: `${quote(`URL: ${url}`)}\n` +
-                    "\n" +
-                    config.msg.footer
+                mimetype: tools.mime.lookup(result.filename) || "application/octet-stream",
+                caption: formatter.quote(`URL: ${url}`),
+                footer: config.msg.footer
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

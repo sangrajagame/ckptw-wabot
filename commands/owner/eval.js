@@ -1,6 +1,3 @@
-const {
-    monospace
-} = require("@itsreimau/ckptw-mod");
 const util = require("node:util");
 
 module.exports = {
@@ -14,9 +11,9 @@ module.exports = {
             const code = ctx.msg.content.slice(ctx.msg.content.startsWith("==> ") ? 4 : 3);
             const result = await eval(ctx.msg.content.startsWith("==> ") ? `(async () => { ${code} })()` : code);
 
-            return await ctx.reply(monospace(util.inspect(result)));
+            return await ctx.reply(formatter.monospace(util.inspect(result)));
         } catch (error) {
-            return await tools.cmd.handleError(ctx, error);
+            return await tools.cmd.handleError(ctx, error, false, false);
         }
     }
 };

@@ -1,8 +1,7 @@
 const {
-    quote
-} = require("@itsreimau/ckptw-mod");
+    AlbumBuilder
+} = require("@itsreimau/gktw");
 const axios = require("axios");
-const mime = require("mime-types");
 
 module.exports = {
     name: "douyindl",
@@ -15,8 +14,8 @@ module.exports = {
         const url = ctx.args[0] || null;
 
         if (!url) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            quote(tools.msg.generateCmdExample(ctx.used, "https://v.douyin.com/d2OVRjYYi9s"))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            formatter.quote(tools.msg.generateCmdExample(ctx.used, "https://v.douyin.com/YEdqwg7JeAQ"))
         );
 
         const isUrl = await tools.cmd.isUrl(url);
@@ -26,17 +25,31 @@ module.exports = {
             const apiUrl = tools.api.createUrl("archive", "/api/download/douyin", {
                 url
             });
-            const result = (await axios.get(apiUrl)).data.result.media;
+            const result = (await axios.get(apiUrl)).data.result;
 
-            return await ctx.reply({
-                video: {
-                    url: result.mp4_hd || result.mp4_2 || result.mp4_1
-                },
-                mimetype: mime.lookup("mp4"),
-                caption: `${quote(`URL: ${url}`)}\n` +
-                    "\n" +
-                    config.msg.footer
-            });
+            if (!result.slide && result.media) {
+                return await ctx.reply({
+                    video: {
+                        url: result.media.mp4_hd || result.media.mp4_2 || result.media.mp4_1
+                    },
+                    mimetype: tools.mime.lookup("mp4"),
+                    caption: formatter.quote(`URL: ${url}`),
+                    footer: config.msg.footer
+                });
+            }
+
+            if (result.slide && result.media) {
+                const album = new AlbumBuilder();
+                for (const imageUrl of result.media) {
+                    album.addImageUrl(imageUrl);
+                }
+
+                return await ctx.reply({
+                    album: album.build(),
+                    caption: formatter.quote(`URL: ${url}`),
+                    footer: config.msg.footer
+                });
+            }
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);
         }

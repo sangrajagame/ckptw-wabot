@@ -1,8 +1,7 @@
 const {
-    quote
-} = require("@itsreimau/ckptw-mod");
+    ButtonBuilder
+} = require("@itsreimau/gktw");
 const axios = require("axios");
-const mime = require("mime-types");
 
 module.exports = {
     name: "pinterest",
@@ -15,8 +14,8 @@ module.exports = {
         const input = ctx.args.join(" ") || null;
 
         if (!input) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            quote(tools.msg.generateCmdExample(ctx.used, "moon"))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            formatter.quote(tools.msg.generateCmdExample(ctx.used, "rei ayanami"))
         );
 
         try {
@@ -29,10 +28,12 @@ module.exports = {
                 image: {
                     url: result
                 },
-                mimetype: mime.lookup("jpg"),
-                caption: `${quote(`Kueri: ${input}`)}\n` +
-                    "\n" +
-                    config.msg.footer
+                mimetype: tools.mime.lookup("jpg"),
+                caption: formatter.quote(`Kueri: ${input}`),
+                footer: config.msg.footer,
+                buttons: new ButtonBuilder()
+                    .regulerButton("Ambil Lagi", `${ctx.used.prefix + ctx.used.command} ${input}`)
+                    .build()
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

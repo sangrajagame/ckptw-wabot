@@ -1,6 +1,6 @@
 const {
-    quote
-} = require("@itsreimau/ckptw-mod");
+    ButtonBuilder
+} = require("@itsreimau/gktw");
 const axios = require("axios");
 
 module.exports = {
@@ -11,19 +11,20 @@ module.exports = {
         coin: 10
     },
     code: async (ctx) => {
-        const apiUrl = tools.api.createUrl("https://jagokata-api.rf.gd", "/acak.php");
-
         try {
+            const apiUrl = tools.api.createUrl("http://jagokata-api.hofeda4501.serv00.net", "/acak.php"); // Dihosting sendiri, karena jagokata-api.rf.gd malah error
             const result = tools.cmd.getRandomElement((await axios.get(apiUrl)).data.data.quotes);
 
-            return await ctx.reply(
-                `${quote(`“${result.quote}”`)}\n` +
-                `${quote("─────")}\n` +
-                `${quote(`Nama: ${result.author.name}`)}\n` +
-                `${quote(`Deskripsi: ${result.author.description}`)}\n` +
-                "\n" +
-                config.msg.footer
-            );
+            return await ctx.reply({
+                text: `${formatter.quote(`“${result.quote}”`)}\n` +
+                    `${formatter.quote("─────")}\n` +
+                    `${formatter.quote(`Nama: ${result.author.name}`)}\n` +
+                    formatter.quote(`Deskripsi: ${result.author.description}`),
+                footer: config.msg.footer,
+                buttons: new ButtonBuilder()
+                    .regulerButton("Ambil Lagi", ctx.used.prefix + ctx.used.command)
+                    .build()
+            });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);
         }

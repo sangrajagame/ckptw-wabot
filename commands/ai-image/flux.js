@@ -1,37 +1,37 @@
 const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-const mime = require("mime-types");
+    ButtonBuilder
+} = require("@itsreimau/gktw");
 
 module.exports = {
     name: "flux",
     category: "ai-image",
     permissions: {
-        coin: 10
+        premium: true
     },
     code: async (ctx) => {
-        const input = ctx.args.join(" ") || ctx.quoted?.conversation || Object.values(ctx.quoted).map(q => q?.text || q?.caption).find(Boolean) || null;
+        const input = ctx.args.join(" ") || ctx?.quoted?.content;
 
         if (!input) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            `${quote(tools.msg.generateCmdExample(ctx.used, "moon"))}\n` +
-            quote(tools.msg.generateNotes(["Balas atau quote pesan untuk menjadikan teks sebagai input target, jika teks memerlukan baris baru."]))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            `${formatter.quote(tools.msg.generateCmdExample(ctx.used, "anime girl with short blue hair"))}\n` +
+            formatter.quote(tools.msg.generateNotes(["Balas atau quote pesan untuk menjadikan teks sebagai input target, jika teks memerlukan baris baru."]))
         );
 
         try {
-            const result = tools.api.createUrl("nekorinn", "/ai-img/flux", {
-                prompt: input,
-                ratio: "1:1"
+            const apiUrl = tools.api.createUrl("nekorinn", "/ai-img/flux-v2", {
+                prompt: input
             });
 
             return await ctx.reply({
                 image: {
                     url: result
                 },
-                mimetype: mime.lookup("jpeg"),
-                caption: `${quote(`Prompt: ${input}`)}\n` +
-                    "\n" +
-                    config.msg.footer
+                mimetype: tools.mime.lookup("png"),
+                caption: formatter.quote(`Prompt: ${input}`),
+                footer: config.msg.footer,
+                buttons: new ButtonBuilder()
+                    .regulerButton("Ambil Lagi", `${ctx.used.prefix + ctx.used.command} ${input}`)
+                    .build()
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

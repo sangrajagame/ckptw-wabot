@@ -1,12 +1,8 @@
-const {
-    monospace,
-    quote
-} = require("@itsreimau/ckptw-mod");
 const axios = require("axios");
 
 module.exports = {
     name: "alkitab",
-    aliases: ["bible", "injil"],
+    aliases: ["bible"],
     category: "tool",
     permissions: {
         coin: 10
@@ -15,14 +11,17 @@ module.exports = {
         const [passage, num] = ctx.args;
 
         if (!passage && !num) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            `${quote(tools.msg.generateCmdExample(ctx.used, "kej 2:18"))}\n` +
-            quote(tools.msg.generateNotes([`Ketik ${monospace(`${ctx.used.prefix + ctx.used.command} list`)} untuk melihat daftar.`]))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            `${formatter.quote(tools.msg.generateCmdExample(ctx.used, "kej 2:18"))}\n` +
+            formatter.quote(tools.msg.generateNotes([`Ketik ${formatter.inlineCode(`${ctx.used.prefix + ctx.used.command} list`)} untuk melihat daftar.`]))
         );
 
-        if (["l", "list"].includes(passage.toLowerCase())) {
+        if (passage.toLowerCase() === "list") {
             const listText = await tools.list.get("alkitab");
-            return await ctx.reply(listText);
+            return await ctx.reply({
+                text: listText,
+                footer: config.msg.footer
+            });
         }
 
         try {
@@ -33,20 +32,19 @@ module.exports = {
             const result = (await axios.get(apiUrl)).data.bible.book;
 
             const resultText = result.chapter.verses.map(r =>
-                `${quote(`Ayat: ${r.number}`)}\n` +
-                `${quote(`${r.text}`)}`
+                `${formatter.quote(`Ayat: ${r.number}`)}\n` +
+                formatter.quote(`${r.text}`)
             ).join(
                 "\n" +
-                `${quote("─────")}\n`
+                `${formatter.quote("─────")}\n`
             );
-            return await ctx.reply(
-                `${quote(`Nama: ${result.name}`)}\n` +
-                `${quote(`Bab: ${result.chapter.chap}`)}\n` +
-                `${quote("─────")}\n` +
-                `${resultText}\n` +
-                "\n" +
-                config.msg.footer
-            );
+            return await ctx.reply({
+                text: `${formatter.quote(`Nama: ${result.name}`)}\n` +
+                    `${formatter.quote(`Bab: ${result.chapter.chap}`)}\n` +
+                    `${formatter.quote("─────")}\n` +
+                    resultText,
+                footer: config.msg.footer
+            });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);
         }

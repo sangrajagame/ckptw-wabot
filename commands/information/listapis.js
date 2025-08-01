@@ -1,7 +1,3 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-
 module.exports = {
     name: "listapis",
     aliases: ["listapi"],
@@ -11,14 +7,13 @@ module.exports = {
             const APIs = tools.api.listUrl();
             let resultText = "";
 
-            for (const [name, api] of Object.entries(APIs)) resultText += quote(`${api.baseURL}\n`);
+            for (const [name, api] of Object.entries(APIs)) resultText += formatter.quote(`${api.baseURL}\n`);
 
-            return await ctx.reply(
-                `${quote("Daftar API yang digunakan:")}\n` +
-                `${resultText.trim()}\n` +
-                "\n" +
-                config.msg.footer
-            );
+            return await ctx.reply({
+                text: `${formatter.quote("Daftar API yang digunakan:")}\n` +
+                    resultText.trim(),
+                footer: config.msg.footer
+            });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);
         }

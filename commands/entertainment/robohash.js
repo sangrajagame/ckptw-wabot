@@ -1,4 +1,6 @@
-const mime = require("mime-types");
+const {
+    ButtonBuilder
+} = require("@itsreimau/gktw");
 
 module.exports = {
     name: "robohash",
@@ -10,8 +12,8 @@ module.exports = {
         const input = ctx.args.join(" ") || null;
 
         if (!input) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            quote(tools.msg.generateCmdExample(ctx.used, "itsreimau"))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            formatter.quote(tools.msg.generateCmdExample(ctx.used, "itsreimau"))
         );
 
         try {
@@ -23,7 +25,12 @@ module.exports = {
                 image: {
                     url: result
                 },
-                mimetype: mime.lookup("jpg")
+                mimetype: tools.mime.lookup("jpg"),
+                caption: formatter.quote(`Username: ${input}`),
+                footer: config.msg.footer,
+                buttons: new ButtonBuilder()
+                    .regulerButton("Ambil Lagi", ctx.used.prefix + ctx.used.command)
+                    .build()
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

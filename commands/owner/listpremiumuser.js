@@ -1,7 +1,3 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-
 module.exports = {
     name: "listpremiumuser",
     aliases: ["listprem", "listpremium"],
@@ -11,7 +7,7 @@ module.exports = {
     },
     code: async (ctx) => {
         try {
-            const users = db.get("user");
+            const users = await db.get("user");
             const premiumUsers = [];
 
             for (const userId in users) {
@@ -30,18 +26,17 @@ module.exports = {
                 userMentions.push(`${user.id}@s.whatsapp.net`);
 
                 if (user.expiration) {
-                    const daysLeft = Math.ceil((user.expiration - Date.now()) / (24 * 60 * 60 * 1000));
-                    resultText += `${quote(`@${user.id} (${daysLeft} hari tersisa)`)}\n`;
+                    const daysLeft = tools.msg.convertMsToDuration(user.expiration, ["hari"]);
+                    resultText += `${formatter.quote(`@${user.id} (${daysLeft} tersisa)`)}\n`;
                 } else {
-                    resultText += `${quote(`@${user.id} (Premium permanen)`)}\n`;
+                    resultText += `${formatter.quote(`@${user.id} (Premium permanen)`)}\n`;
                 }
             }
 
             return await ctx.reply({
-                text: `${resultText.trim() || config.msg.notFound}` +
-                    "\n" +
-                    config.msg.footer,
-                mentions: userMentions
+                text: resultText.trim() || config.msg.notFound,
+                mentions: userMentions,
+                footer: config.msg.footer
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);

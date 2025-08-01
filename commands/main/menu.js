@@ -1,10 +1,6 @@
 const {
-    bold,
-    italic,
-    monospace,
-    quote
-} = require("@itsreimau/ckptw-mod");
-const mime = require("mime-types");
+    ButtonBuilder
+} = require("@itsreimau/gktw");
 const moment = require("moment-timezone");
 
 module.exports = {
@@ -19,6 +15,7 @@ module.exports = {
             const tag = {
                 "ai-chat": "AI (Chat)",
                 "ai-image": "AI (Image)",
+                "ai-video": "AI (Video)",
                 "ai-misc": "AI (Miscellaneous)",
                 "converter": "Converter",
                 "downloader": "Downloader",
@@ -34,16 +31,16 @@ module.exports = {
                 "misc": "Miscellaneous"
             };
 
-            let text = `Hai @${ctx.getId(ctx.sender.jid)}, berikut adalah daftar perintah yang tersedia!\n` +
+            let text = `Halo @${ctx.getId(ctx.sender.jid)}, berikut adalah daftar perintah yang tersedia!\n` +
                 "\n" +
-                `${quote(`Tanggal: ${moment.tz(config.system.timeZone).locale("id").format("dddd, DD MMMM YYYY")}`)}\n` +
-                `${quote(`Waktu: ${moment.tz(config.system.timeZone).format("HH.mm.ss")}`)}\n` +
+                `${formatter.quote(`Tanggal: ${moment.tz(config.system.timeZone).locale("id").format("dddd, DD MMMM YYYY")}`)}\n` +
+                `${formatter.quote(`Waktu: ${moment.tz(config.system.timeZone).format("HH.mm.ss")}`)}\n` +
                 "\n" +
-                `${quote(`Bot Uptime: ${config.bot.uptime}`)}\n` +
-                `${quote(`Database: ${config.bot.dbSize} (Simpl.DB - JSON)`)}\n` +
-                `${quote("Library: @itsreimau/ckptw-mod (Fork of @mengkodingan/ckptw)")}\n` +
+                `${formatter.quote(`Bot Uptime: ${config.bot.uptime}`)}\n` +
+                `${formatter.quote(`Database: ${config.bot.dbSize} (Simpl.DB - JSON)`)}\n` +
+                `${formatter.quote("Library: @itsreimau/gktw (Fork of @mengkodingan/ckptw)")}\n` +
                 "\n" +
-                `${italic("Jangan lupa berdonasi agar bot tetap online!")}\n` +
+                `${formatter.italic("Jangan lupa berdonasi agar bot tetap online!")}\n` +
                 `${config.msg.readmore}\n`;
 
             for (const category of Object.keys(tag)) {
@@ -56,7 +53,7 @@ module.exports = {
                     }));
 
                 if (categoryCmds.length > 0) {
-                    text += `◆ ${bold(tag[category])}\n`;
+                    text += `◆ ${formatter.bold(tag[category])}\n`;
 
                     categoryCmds.forEach(cmd => {
                         let permissionsText = "";
@@ -66,52 +63,29 @@ module.exports = {
                         if (cmd.permissions.premium) permissionsText += "Ⓟ";
                         if (cmd.permissions.private) permissionsText += "ⓟ";
 
-                        text += quote(monospace(`${ctx.used.prefix + cmd.name} ${permissionsText}`));
+                        text += formatter.quote(formatter.monospace(`${ctx.used.prefix + cmd.name} ${permissionsText}`));
                         text += "\n";
                     });
-
-                    text += "\n";
                 }
+
+                text += "\n";
+
             }
 
-            text += config.msg.footer;
-
-            await ctx.sendMessage(ctx.id, {
-                text,
-                contextInfo: {
-                    mentionedJid: [ctx.sender.jid],
-                    isForwarded: true,
-                    forwardedNewsletterMessageInfo: {
-                        newsletterJid: config.bot.newsletterJid,
-                        newsletterName: config.bot.name
-                    },
-                    externalAdReply: {
-                        title: config.bot.name,
-                        body: config.bot.version,
-                        mediaType: 1,
-                        thumbnailUrl: config.bot.thumbnail,
-                        renderLargerThumbnail: true
-                    }
-                }
+            return await ctx.sendMessage(ctx.id, {
+                image: {
+                    url: config.bot.thumbnail
+                },
+                mimetype: tools.mime.lookup("png"),
+                caption: text.trim(),
+                mentions: [ctx.sender.jid],
+                footer: config.msg.footer,
+                buttons: new ButtonBuilder()
+                    .regulerButton("Hubungi Owner", `${ctx.used.prefix}owner`)
+                    .regulerButton("Donasi", `${ctx.used.prefix}donate`)
+                    .build()
             }, {
                 quoted: tools.cmd.fakeMetaAiQuotedText(config.msg.note)
-            });
-            return await ctx.sendMessage(ctx.id, {
-                audio: {
-                    url: "https://www.tikwm.com/video/music/7472130814805822726.mp3" // Dapat diubah sesuai keinginan (Ada yg request, tambah lagu di menu nya)
-                },
-                mimetype: mime.lookup("mp3"),
-                ptt: true,
-                contextInfo: {
-                    mentionedJid: [ctx.sender.jid],
-                    externalAdReply: {
-                        title: config.bot.name,
-                        body: config.bot.version,
-                        mediaType: 1,
-                        thumbnailUrl: "https://i.ytimg.com/vi/jfKfPfyJRdk/maxresdefault.jpg",
-                        renderLargerThumbnail: true
-                    }
-                }
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);

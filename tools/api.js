@@ -1,3 +1,4 @@
+// Impor modul dan dependensi yang diperlukan
 const util = require("node:util");
 
 // Daftar API gratis
@@ -5,11 +6,11 @@ const APIs = {
     archive: {
         baseURL: "https://archive.lick.eu.org"
     },
+    davidcyril: {
+        baseURL: "https://apis.davidcyriltech.my.id"
+    },
     diibot: {
         baseURL: "https://api.diioffc.web.id"
-    },
-    falcon: {
-        baseURL: "https://flowfalcon.dpdns.org"
     },
     nekorinn: {
         baseURL: "https://api.nekorinn.my.id"
@@ -20,11 +21,11 @@ const APIs = {
     siputzx: {
         baseURL: "https://api.siputzx.my.id"
     },
-    skyzopedia: {
-        baseURL: "https://restapi-v2.simplebot.my.id"
-    },
     zell: {
         baseURL: "https://zellapi.autos"
+    },
+    zenzxz: {
+        baseURL: "https://zenzxz.dpdns.org"
     }
 };
 

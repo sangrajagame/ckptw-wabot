@@ -1,7 +1,3 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-
 module.exports = {
     name: "ohidetag",
     aliases: ["oht"],
@@ -11,7 +7,7 @@ module.exports = {
         owner: true
     },
     code: async (ctx) => {
-        const input = ctx.args.join(" ") || quote("👋 Halo, Dunia!");
+        const input = ctx.args.join(" ") || ctx?.quoted?.content || formatter.quote("👋 Halo, Dunia!");;
 
         try {
             const members = await ctx.group().members();

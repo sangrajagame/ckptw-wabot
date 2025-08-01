@@ -1,4 +1,6 @@
-const mime = require("mime-types");
+const {
+    ButtonBuilder
+} = require("@itsreimau/gktw");
 
 module.exports = {
     name: "cecan",
@@ -9,24 +11,29 @@ module.exports = {
     code: async (ctx) => {
         const input = ctx.args.join(" ") || null;
 
-        if (["l", "list"].includes(input?.toLowerCase())) {
+        if (input?.toLowerCase() === "list") {
             const listText = await tools.list.get("cecan");
-            return await ctx.reply(listText);
+            return await ctx.reply({
+                text: listText,
+                footer: config.msg.footer
+            });
         }
 
         try {
             const listCecan = ["china", "indonesia", "japan", "korea", "thailand", "vietnam"];
             const cecan = listCecan.includes(input) ? input : tools.cmd.getRandomElement(listCecan);
-            const result = tools.api.createUrl("siputz", `/api/r/cecan/${cecan}`);
+            const result = tools.api.createUrl("siputzx", `/api/r/cecan/${cecan}`);
 
             return await ctx.reply({
                 image: {
                     url: result
                 },
-                mimetype: mime.lookup("jpg"),
-                caption: `${quote(`Kategori: ${tools.msg.ucwords(cecan)}`)}\n` +
-                    "\n" +
-                    config.msg.footer
+                mimetype: tools.mime.lookup("jpg"),
+                caption: formatter.quote(`Kategori: ${tools.msg.ucwords(cecan)}`),
+                footer: config.msg.footer,
+                buttons: new ButtonBuilder()
+                    .regulerButton("Ambil Lagi", input ? `${ctx.used.prefix + ctx.used.command} ${input}` : ctx.used.prefix + ctx.used.command)
+                    .build()
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

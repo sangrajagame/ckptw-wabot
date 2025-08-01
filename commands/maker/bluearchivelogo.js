@@ -1,8 +1,3 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-const mime = require("mime-types");
-
 module.exports = {
     name: "bluearchivelogo",
     aliases: ["balogo"],
@@ -14,8 +9,8 @@ module.exports = {
         const input = ctx.args.join(" ") || null;
 
         if (!input) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            quote(tools.msg.generateCmdExample(ctx.used, "evang|elion"))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            formatter.quote(tools.msg.generateCmdExample(ctx.used, "evang|elion"))
         );
 
         try {
@@ -29,7 +24,8 @@ module.exports = {
                 image: {
                     url: result
                 },
-                mimetype: mime.lookup("png")
+                mimetype: tools.mime.lookup("png"),
+                footer: config.msg.footer
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

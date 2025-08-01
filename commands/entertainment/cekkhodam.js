@@ -1,6 +1,6 @@
 const {
-    quote
-} = require("@itsreimau/ckptw-mod");
+    ButtonBuilder
+} = require("@itsreimau/gktw");
 const axios = require("axios");
 
 module.exports = {
@@ -14,20 +14,22 @@ module.exports = {
         const input = ctx.args.join(" ") || null;
 
         if (!input) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            quote(tools.msg.generateCommandExample(ctx.used, "itsreimau"))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            formatter.quote(tools.msg.generateCmdExample(ctx.used, "itsreimau"))
         );
 
         try {
             const apiUrl = tools.api.createUrl("https://raw.githubusercontent.com", "/SazumiVicky/cek-khodam/main/khodam/list.txt", {});
-            const result = tools.general.getRandomElement((await axios.get(apiUrl)).data.trim().split("\n").filter(Boolean));
+            const result = tools.cmd.getRandomElement((await axios.get(apiUrl)).data.trim().split("\n").filter(Boolean));
 
-            return await ctx.reply(
-                `${quote(`Nama: ${input}`)}\n` +
-                `${quote(`Khodam: ${result}`)}\n` +
-                "\n" +
-                config.msg.footer
-            );
+            return await ctx.reply({
+                text: `${formatter.quote(`Nama: ${input}`)}\n` +
+                    formatter.quote(`Khodam: ${result}`),
+                footer: config.msg.footer,
+                buttons: new ButtonBuilder()
+                    .regulerButton("Ambil Lagi", `${ctx.used.prefix + ctx.used.command} ${input}`)
+                    .build()
+            });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);
         }

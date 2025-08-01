@@ -1,8 +1,4 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
 const axios = require("axios");
-const mime = require("mime-types");
 
 module.exports = {
     name: "whatanimeisthis",
@@ -12,13 +8,12 @@ module.exports = {
         coin: 10
     },
     code: async (ctx) => {
-        const messageType = ctx.getMessageType();
         const [checkMedia, checkQuotedMedia] = await Promise.all([
-            tools.cmd.checkMedia(messageType, "image"),
-            tools.cmd.checkQuotedMedia(ctx.quoted, "image")
+            tools.cmd.checkMedia(ctx.msg.contentType, "image"),
+            tools.cmd.checkQuotedMedia(ctx?.quoted?.contentType, "image")
         ]);
 
-        if (!checkMedia && !checkQuotedMedia) return await ctx.reply(quote(tools.msg.generateInstruction(["send", "reply"], "image")));
+        if (!checkMedia && !checkQuotedMedia) return await ctx.reply(formatter.quote(tools.msg.generateInstruction(["send", "reply"], "image")));
 
         try {
             const buffer = await ctx.msg.media.toBuffer() || await ctx.quoted.media.toBuffer();
@@ -32,13 +27,12 @@ module.exports = {
                 video: {
                     url: result.video
                 },
-                mimetype: mime.lookup("mp4"),
-                caption: `${quote(`Nama: ${result.filename}`)}\n` +
-                    `${quote(`Episode: ${result.episode}`)}\n` +
-                    `${quote(`Rentang Waktu: ${tools.msg.convertSecondToTimecode(result.from)}-${tools.msg.convertSecondToTimecode(result.to)}`)}\n` +
-                    `${quote(`Kemiripan: ${result.similarity}`)}\n` +
-                    "\n" +
-                    config.msg.footer
+                mimetype: tools.mime.lookup("mp4"),
+                caption: `${formatter.quote(`Nama: ${result.filename}`)}\n` +
+                    `${formatter.quote(`Episode: ${result.episode}`)}\n` +
+                    `${formatter.quote(`Rentang Waktu: ${tools.msg.convertSecondToTimecode(result.from)}-${tools.msg.convertSecondToTimecode(result.to)}`)}\n` +
+                    formatter.quote(`Kemiripan: ${result.similarity}`),
+                footer: config.msg.footer
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

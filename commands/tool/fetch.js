@@ -1,9 +1,4 @@
-const {
-    bold,
-    quote
-} = require("@itsreimau/ckptw-mod");
 const axios = require("axios");
-const mime = require("mime-types");
 const {
     Sticker,
     StickerTypes
@@ -20,8 +15,8 @@ module.exports = {
         const url = ctx.args[0] || null;
 
         if (!url) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            quote(tools.msg.generateCmdExample(ctx.used, config.bot.thumbnail))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            formatter.quote(tools.msg.generateCmdExample(ctx.used, config.bot.thumbnail))
         );
 
         const isUrl = await tools.cmd.isUrl(url);
@@ -40,17 +35,23 @@ module.exports = {
             if (/image/.test(contentType)) {
                 return await ctx.reply({
                     image: response?.data,
-                    mimetype: mime.contentType(contentType)
+                    mimetype: tools.mime.contentType(contentType),
+                    caption: formatter.quote("Untukmu, tuan!"),
+                    footer: config.msg.footer
                 });
             } else if (/video/.test(contentType)) {
                 return await ctx.reply({
                     video: response?.data,
-                    mimetype: mime.contentType(contentType)
+                    mimetype: tools.mime.contentType(contentType),
+                    caption: formatter.quote("Untukmu, tuan!"),
+                    footer: config.msg.footer
                 });
             } else if (/audio/.test(contentType)) {
                 return await ctx.reply({
                     audio: response?.data,
-                    mimetype: mime.contentType(contentType)
+                    mimetype: tools.mime.contentType(contentType),
+                    caption: formatter.quote("Untukmu, tuan!"),
+                    footer: config.msg.footer
                 });
             } else if (/webp/.test(contentType)) {
                 const sticker = new Sticker(response?.data, {
@@ -69,7 +70,7 @@ module.exports = {
                 return await ctx.reply({
                     document: response?.data,
                     fileName,
-                    mimetype: mime.contentType(contentType)
+                    mimetype: tools.mime.contentType(contentType)
                 });
             } else {
                 let text = response?.data;
@@ -82,13 +83,7 @@ module.exports = {
                 }
 
                 const responseText = json ? walkJSON(json) : text;
-                return await ctx.reply(
-                    `${quote(`Status: ${response.status} ${response.statusText}`)}\n` +
-                    `${quote("─────")}\n` +
-                    `${responseText}\n` +
-                    "\n" +
-                    config.msg.footer
-                );
+                return await ctx.reply(responseText);
             }
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);
@@ -98,7 +93,7 @@ module.exports = {
 
 function walkJSON(json, depth = 0, array = []) {
     for (const key in json) {
-        array.push(`${"┊".repeat(depth)}${depth > 0 ? " " : ""}${bold(key)}:`);
+        array.push(`${"┊".repeat(depth)}${depth > 0 ? " " : ""}${formatter.bold(key)}:`);
         if (typeof json[key] === "object" && json[key] !== null) {
             walkJSON(json[key], depth + 1, array);
         } else {

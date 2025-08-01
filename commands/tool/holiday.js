@@ -1,6 +1,3 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
 const axios = require("axios");
 const moment = require("moment-timezone");
 
@@ -22,17 +19,16 @@ module.exports = {
 
             const resultText = result.reverse().map(r => {
                 const formattedDate = moment.tz(r.tanggal, "Asia/Jakarta").locale("id").format("dddd, DD MMMM YYYY");
-                return `${quote(r.keterangan)}\n` +
-                    quote(formattedDate);
+                return `${formatter.quote(r.keterangan)}\n` +
+                    formatter.quote(formattedDate);
             }).join(
                 "\n" +
-                `${quote("─────")}\n`
+                `${formatter.quote("─────")}\n`
             );
-            return await ctx.reply(
-                `${resultText || config.msg.notFound}\n` +
-                "\n" +
-                config.msg.footer
-            );
+            return await ctx.reply({
+                text: resultText || config.msg.notFound,
+                footer: config.msg.footer
+            });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);
         }

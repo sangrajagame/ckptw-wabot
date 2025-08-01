@@ -1,8 +1,4 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
 const axios = require("axios");
-const mime = require("mime-types");
 
 module.exports = {
     name: "facebookdl",
@@ -15,27 +11,26 @@ module.exports = {
         const url = ctx.args[0] || null;
 
         if (!url) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            quote(tools.msg.generateCmdExample(ctx.used, "https://web.facebook.com/hanabi.lemon/videos/455736192416206"))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            formatter.quote(tools.msg.generateCmdExample(ctx.used, "https://www.facebook.com/reel/1112151989983701"))
         );
 
         const isUrl = await tools.cmd.isUrl(url);
         if (!isUrl) return await ctx.reply(config.msg.urlInvalid);
 
         try {
-            const apiUrl = tools.api.createUrl("nekorinn", "/downloader/facebook", {
+            const apiUrl = tools.api.createUrl("falcon", "/download/facebook", {
                 url
             });
-            const result = (await axios.get(apiUrl)).data.result[0];
+            const result = (await axios.get(apiUrl)).data.result.media;
 
             return await ctx.reply({
                 video: {
-                    url: result.url
+                    url: result.video_hd || result.video_sd
                 },
-                mimetype: mime.lookup("mp4"),
-                caption: `${quote(`URL: ${url}`)}\n` +
-                    "\n" +
-                    config.msg.footer
+                mimetype: tools.mime.lookup("mp4"),
+                caption: formatter.quote(`URL: ${url}`),
+                footer: config.msg.footer
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

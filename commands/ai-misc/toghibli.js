@@ -1,7 +1,4 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-const mime = require("mime-types");
+const axios = require("axios");
 
 module.exports = {
     name: "toghibli",
@@ -11,26 +8,28 @@ module.exports = {
         premium: true
     },
     code: async (ctx) => {
-        const messageType = ctx.getMessageType();
         const [checkMedia, checkQuotedMedia] = await Promise.all([
-            tools.cmd.checkMedia(messageType, "image"),
-            tools.cmd.checkQuotedMedia(ctx.quoted, "image")
+            tools.cmd.checkMedia(ctx.msg.contentType, "image"),
+            tools.cmd.checkQuotedMedia(ctx?.quoted?.contentType, "image")
         ]);
 
-        if (!checkMedia && !checkQuotedMedia) return await ctx.reply(quote(tools.msg.generateInstruction(["send", "reply"], "image")));
+        if (!checkMedia && !checkQuotedMedia) return await ctx.reply(formatter.quote(tools.msg.generateInstruction(["send", "reply"], "image")));
 
         try {
             const buffer = await ctx.msg.media.toBuffer() || await ctx.quoted.media.toBuffer();
             const uploadUrl = await tools.cmd.upload(buffer, "image");
-            const result = tools.api.createUrl("nirkyy", "/api/v1/ghiblistyle", {
+            const apiUrl = tools.api.createUrl("falcon", "/tools/toghibli", {
                 url: uploadUrl
             });
+            const result = (await axios.get(apiUrl)).data.result.data[0].url;
 
             return await ctx.reply({
                 image: {
                     url: result
                 },
-                mimetype: mime.lookup("jpeg")
+                mimetype: tools.mime.lookup("jpeg"),
+                caption: formatter.quote("Untukmu, tuan!"),
+                footer: config.msg.footer
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

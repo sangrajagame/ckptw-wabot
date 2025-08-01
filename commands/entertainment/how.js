@@ -1,8 +1,3 @@
-const {
-    monospace,
-    quote
-} = require("@itsreimau/ckptw-mod");
-
 module.exports = {
     name: "how",
     aliases: ["howgay", "howpintar", "howcantik", "howganteng", "howgabut", "howgila", "howlesbi", "howstress", "howbucin", "howjones", "howsadboy"],
@@ -13,21 +8,24 @@ module.exports = {
     code: async (ctx) => {
         const input = ctx.args.join(" ") || null;
 
-        if (!input) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            `${quote(tools.msg.generateCmdExample(ctx.used, "itsreimau"))}\n` +
-            quote(tools.msg.generateNotes([`Ketik ${monospace(`${ctx.used.prefix + ctx.used.command} list`)} untuk melihat daftar.`]))
-        );
-
-        if (ctx.used.command === "how" || ["l", "list"].includes(input.toLowerCase())) {
+        if (ctx.used.command === "how" || input?.toLowerCase() === "list") {
             const listText = await tools.list.get("how");
-            return await ctx.reply(listText);
+            return await ctx.reply({
+                text: listText,
+                footer: config.msg.footer
+            });
         }
+
+        if (!input) return await ctx.reply(
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            `${formatter.quote(tools.msg.generateCmdExample(ctx.used, "itsreimau"))}\n` +
+            formatter.quote(tools.msg.generateNotes([`Ketik ${formatter.inlineCode(`${ctx.used.prefix + ctx.used.command} list`)} untuk melihat daftar.`]))
+        );
 
         try {
             const randomNumber = Math.floor(Math.random() * 100);
 
-            return await ctx.reply(quote(`${input} itu ${randomNumber}% ${(ctx.used.command.replace("how", "")).toLowerCase()}.`));
+            return await ctx.reply(formatter.quote(`${input} itu ${randomNumber}% ${(ctx.used.command.replace("how", ""))}.`));
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);
         }

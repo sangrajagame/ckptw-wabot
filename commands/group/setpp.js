@@ -1,7 +1,3 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-
 module.exports = {
     name: "setpp",
     aliases: ["seticon"],
@@ -12,20 +8,18 @@ module.exports = {
         group: true
     },
     code: async (ctx) => {
-        const messageType = ctx.getMessageType();
         const [checkMedia, checkQuotedMedia] = await Promise.all([
-            tools.cmd.checkMedia(messageType, "image"),
-            tools.cmd.checkQuotedMedia(ctx.quoted, "image")
+            tools.cmd.checkMedia(ctx.msg.contentType, "image"),
+            tools.cmd.checkQuotedMedia(ctx?.quoted?.contentType, "image")
         ]);
 
-        if (!checkMedia && !checkQuotedMedia) return await ctx.reply(quote(tools.msg.generateInstruction(["send", "reply"], "image")));
+        if (!checkMedia && !checkQuotedMedia) return await ctx.reply(formatter.quote(tools.msg.generateInstruction(["send", "reply"], "image")));
 
         try {
             const buffer = await ctx.msg.media.toBuffer() || await ctx.quoted.media.toBuffer();
-
             await ctx.core.updateProfilePicture(ctx.id, buffer);
 
-            return await ctx.reply(quote("✅ Berhasil mengubah gambar profil grup!"));
+            return await ctx.reply(formatter.quote("✅ Berhasil mengubah gambar profil grup!"));
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);
         }

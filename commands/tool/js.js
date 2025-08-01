@@ -1,30 +1,26 @@
 const {
-    monospace,
-    quote
-} = require("@itsreimau/ckptw-mod");
-const {
     spawn
 } = require("node:child_process");
 
 module.exports = {
     name: "js",
-    aliases: ["node", "javascript"],
+    aliases: ["javascript", "node"],
     category: "tool",
     permissions: {
         coin: 10
     },
     code: async (ctx) => {
-        const input = ctx.args.join(" ") || ctx.quoted?.conversation || Object.values(ctx.quoted).map(q => q?.text || q?.caption).find(Boolean) || null;
+        const input = ctx.args.join(" ") || ctx?.quoted?.content;
 
         if (!input) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            quote(tools.msg.generateCmdExample(ctx.used, 'console.log("halo, dunia!");'))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            formatter.quote(tools.msg.generateCmdExample(ctx.used, 'console.log("halo, dunia!");'))
         );
 
         try {
             const restricted = ["require", "eval", "Function", "global"];
             for (const w of restricted) {
-                if (input.includes(w)) return await ctx.reply(quote(`❎ Penggunaan ${w} tidak diperbolehkan dalam kode!`));
+                if (input.includes(w)) return await ctx.reply(formatter.quote(`❎ Penggunaan ${w} tidak diperbolehkan dalam kode!`));
             }
 
             const output = await new Promise(resolve => {
@@ -35,7 +31,7 @@ module.exports = {
 
                 childProcess.stdout.on("data", (chunk) => {
                     if (outputData.length >= 1024 * 1024) {
-                        resolve(quote("❎ Kode mencapai batas penggunaan memori!"));
+                        resolve("❎ Kode mencapai batas penggunaan memori!");
                         childProcess.kill();
                     }
                     outputData += chunk.toString();
@@ -48,7 +44,7 @@ module.exports = {
                 childProcess.on("close", (code) => {
                     if (code !== 0) {
                         resolve(
-                            `${quote(`⚠ Keluar dari proses dengan kode: ${code}`)}\n` +
+                            `⚠ Keluar dari proses dengan kode: ${code}\n` +
                             errorData.trim()
                         );
                     } else {
@@ -57,12 +53,12 @@ module.exports = {
                 });
 
                 setTimeout(() => {
-                    resolve(quote("❎ Kode mencapai batas waktu output!"));
+                    resolve("❎ Kode mencapai batas waktu output!");
                     childProcess.kill();
                 }, 10000);
             });
 
-            await ctx.reply(monospace(output));
+            return await ctx.reply(formatter.monospace(output));
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);
         }

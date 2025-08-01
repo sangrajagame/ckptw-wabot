@@ -1,4 +1,6 @@
-const mime = require("mime-types");
+const {
+    ButtonBuilder
+} = require("@itsreimau/gktw");
 
 module.exports = {
     name: "picre",
@@ -14,7 +16,12 @@ module.exports = {
                 image: {
                     url: result
                 },
-                mimetype: mime.lookup("png")
+                mimetype: tools.mime.lookup("png"),
+                caption: formatter.quote("Untukmu, tuan!"),
+                footer: config.msg.footer,
+                buttons: new ButtonBuilder()
+                    .regulerButton("Ambil Lagi", ctx.used.prefix + ctx.used.command)
+                    .build()
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

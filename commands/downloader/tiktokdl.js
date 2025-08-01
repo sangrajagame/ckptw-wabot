@@ -1,8 +1,7 @@
 const {
-    quote
-} = require("@itsreimau/ckptw-mod");
+    AlbumBuilder
+} = require("@itsreimau/gktw");
 const axios = require("axios");
-const mime = require("mime-types");
 
 module.exports = {
     name: "tiktokdl",
@@ -15,39 +14,39 @@ module.exports = {
         const url = ctx.args[0] || null;
 
         if (!url) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            quote(tools.msg.generateCmdExample(ctx.used, "https://www.tiktok.com/@japanese_songs2/video/7472130814805822726"))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            formatter.quote(tools.msg.generateCmdExample(ctx.used, "https://www.tiktok.com/@grazeuz/video/7486690677888158984"))
         );
 
         const isUrl = await tools.cmd.isUrl(url);
         if (!isUrl) return await ctx.reply(config.msg.urlInvalid);
 
         try {
-            const apiUrl = tools.api.createUrl("archive", "/api/download/tiktok", {
+            const apiUrl = tools.api.createUrl("falcon", "/download/tiktok", {
                 url
             });
-            const result = (await axios.get(apiUrl)).data.result.media;
-            const video = result.play;
-            const images = result?.image_slide;
+            const result = (await axios.get(apiUrl)).data.result.data;
 
-            if (images) {
-                for (const image of images) {
-                    await ctx.reply({
-                        image: {
-                            url: image
-                        },
-                        mimetype: mime.lookup("jpeg")
-                    });
+            if (result.play && !result.images) return await ctx.reply({
+                video: {
+                    url: result.play
+                },
+                mimetype: tools.mime.lookup("mp4"),
+                caption: formatter.quote(`URL: ${url}`),
+                footer: config.msg.footer
+            });
+
+
+            if (result.images) {
+                const album = new AlbumBuilder();
+                for (const imageUrl of result.images) {
+                    album.addImageUrl(imageUrl);
                 }
-            } else if (video) {
+
                 return await ctx.reply({
-                    video: {
-                        url: video
-                    },
-                    mimetype: mime.lookup("mp4"),
-                    caption: `${quote(`URL: ${url}`)}\n` +
-                        "\n" +
-                        config.msg.footer
+                    album: album.build(),
+                    caption: formatter.quote(`URL: ${url}`),
+                    footer: config.msg.footer
                 });
             }
         } catch (error) {

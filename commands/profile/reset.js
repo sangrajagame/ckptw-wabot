@@ -1,7 +1,6 @@
 const {
-    monospace,
-    quote
-} = require("@itsreimau/ckptw-mod");
+    ButtonBuilder
+} = require("@itsreimau/gktw");
 
 module.exports = {
     name: "reset",
@@ -10,26 +9,29 @@ module.exports = {
         private: true
     },
     code: async (ctx) => {
-        await ctx.reply(quote(`🤖 Apakah kamu yakin ingin mereset datamu? Langkah ini akan menghapus seluruh data yang tersimpan dan tidak dapat dikembalikan. Ketik ${monospace("y")} untuk melanjutkan atau ${monospace("n")} untuk membatalkan.`));
+        await ctx.reply({
+            text: formatter.quote(`🤖 Apakah kamu yakin ingin mereset datamu? Langkah ini akan menghapus seluruh data yang tersimpan dan tidak dapat dikembalikan.`),
+            footer: config.msg.footer,
+            buttons: new ButtonBuilder()
+                .regulerButton("Ya", "y")
+                .regulerButton("Tidak", "n")
+                .build()
+        });
 
         try {
-            const collector = ctx.MessageCollector({
+            ctx.awaitMessages({
                 time: 60000
-            });
-
-            collector.on("collect", async (m) => {
+            }).then(async (m) => {
                 const content = m.content.trim().toLowerCase();
                 const senderId = ctx.getId(ctx.sender.jid);
 
                 if (content === "y") {
-                    const isPremium = await db.get(`user.${senderId}.premium`);
                     await db.delete(`user.${senderId}`);
-                    if (isPremium) await db.set(`user.${senderId}.premium`, true);
-                    await ctx.reply(quote("✅ Data-mu berhasil direset, semua data telah dihapus!"));
-                    collector.stop();
+                    await ctx.reply(formatter.quote("✅ Data-mu berhasil direset, semua data telah dihapus!"));
+                    return collector.stop();
                 } else if (content === "n") {
-                    await ctx.reply(quote("❌ Proses reset data telah dibatalkan."));
-                    collector.stop();
+                    await ctx.reply(formatter.quote("❌ Proses reset data telah dibatalkan."));
+                    return collector.stop();
                 }
             });
         } catch (error) {

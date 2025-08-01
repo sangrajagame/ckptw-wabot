@@ -1,8 +1,3 @@
-const {
-    monospace,
-    quote
-} = require("@itsreimau/ckptw-mod");
-
 module.exports = {
     name: "group",
     category: "group",
@@ -15,14 +10,17 @@ module.exports = {
         const input = ctx.args.join(" ") || null;
 
         if (!input) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            `${quote(tools.msg.generateCmdExample(ctx.used, "open"))}\n` +
-            quote(tools.msg.generateNotes([`Ketik ${monospace(`${ctx.used.prefix + ctx.used.command} list`)} untuk melihat daftar.`]))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            `${formatter.quote(tools.msg.generateCmdExample(ctx.used, "open"))}\n` +
+            formatter.quote(tools.msg.generateNotes([`Ketik ${formatter.inlineCode(`${ctx.used.prefix + ctx.used.command} list`)} untuk melihat daftar.`]))
         );
 
-        if (["l", "list"].includes(input.toLowerCase())) {
+        if (input.toLowerCase() === "list") {
             const listText = await tools.list.get("group");
-            return await ctx.reply(listText);
+            return await ctx.reply({
+                text: listText,
+                footer: config.msg.footer
+            });
         }
 
         try {
@@ -46,10 +44,10 @@ module.exports = {
                     await ctx.group().membersCanAddMemberMode("off");
                     break;
                 default:
-                    return await ctx.reply(quote("❎ Teks tidak valid!"));
+                    return await ctx.reply(formatter.quote(`❎ Setelan "${input}" tidak valid!`));
             }
 
-            return await ctx.reply(quote("✅ Berhasil mengubah setelan grup!"));
+            return await ctx.reply(formatter.quote("✅ Berhasil mengubah setelan grup!"));
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);
         }

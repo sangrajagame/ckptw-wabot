@@ -1,8 +1,4 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-const ezgif = require("ezgif-node");
-const mime = require("mime-types");
+const axios = require("axios");
 
 module.exports = {
     name: "tovideo",
@@ -12,21 +8,21 @@ module.exports = {
         coin: 10
     },
     code: async (ctx) => {
-        if (!await tools.cmd.checkQuotedMedia(ctx.quoted, ["sticker"])) return await ctx.reply(quote(tools.msg.generateInstruction(["reply"], ["sticker"])));
+        if (!await tools.cmd.checkQuotedMedia(ctx?.quoted?.contentType, ["sticker"])) return await ctx.reply(formatter.quote(tools.msg.generateInstruction(["reply"], ["sticker"])));
 
         try {
-            const buffer = await ctx.quoted.media.toBuffer()
-            const result = await ezgif.convert({
-                type: "webp-mp4",
-                file: buffer,
-                filename: "upload.webp"
-            });
+            const buffer = await ctx.quoted.media.toBuffer();
+            const apiUrl = tools.api.createUrl("https://nekochii-converter.hf.space", "/webp2mp4");
+            const result = (await axios.post(apiUrl, {
+                file: buffer.toString("base64"),
+                json: true
+            })).data.result;
 
             return await ctx.reply({
                 video: {
                     url: result
                 },
-                mimetype: mime.lookup("mp4")
+                mimetype: tools.mime.lookup("mp4")
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

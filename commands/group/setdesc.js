@@ -1,7 +1,3 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-
 module.exports = {
     name: "setdesc",
     category: "group",
@@ -11,17 +7,17 @@ module.exports = {
         group: true
     },
     code: async (ctx) => {
-        const input = ctx.args.join(" ") || null;
+        const input = ctx.args.join(" ") || ctx?.quoted?.content;
 
         if (!input) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            quote(tools.msg.generateCmdExample(ctx.used, "by itsreimau"))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            formatter.quote(tools.msg.generateCmdExample(ctx.used, "by itsreimau"))
         );
 
         try {
             await ctx.group().updateDescription(input);
 
-            return await ctx.reply(quote("✅ Berhasil mengubah deskripsi grup!"));
+            return await ctx.reply(formatter.quote("✅ Berhasil mengubah deskripsi grup!"));
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);
         }

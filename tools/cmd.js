@@ -1,9 +1,8 @@
 // Impor modul dan dependensi yang diperlukan
 const api = require("./api.js");
 const {
-    monospace,
-    quote
-} = require("@itsreimau/ckptw-mod");
+    MessageType
+} = require("@itsreimau/gktw");
 const uploader = require("@zanixongroup/uploader");
 const axios = require("axios");
 const didYouMean = require("didyoumean");
@@ -20,13 +19,14 @@ async function checkMedia(type, required) {
     if (!type || !required) return false;
 
     const mediaMap = {
-        audio: "audioMessage",
-        document: ["documentMessage", "documentWithCaptionMessage"],
-        gif: "videoMessage",
+        audio: MessageType.audioMessage,
+        document: [MessageType.documentMessage, MessageType.documentWithCaptionMessage],
+        gif: MessageType.videoMessage,
         groupStatusMention: "groupStatusMentionMessage",
-        image: "imageMessage",
-        sticker: "stickerMessage",
-        video: "videoMessage"
+        image: MessageType.imageMessage,
+        sticker: MessageType.stickerMessage,
+        video: MessageType.videoMessage,
+        text: [MessageType.conversation, MessageType.extendedTextMessage]
     };
 
     const mediaList = Array.isArray(required) ? required : [required];
@@ -47,26 +47,25 @@ async function checkMedia(type, required) {
 async function checkQuotedMedia(type, required) {
     if (!type || !required) return false;
 
-    const typeMediaMap = {
-        audio: type.audioMessage,
-        document: type.documentMessage || type.documentWithCaptionMessage,
-        gif: type.videoMessage,
-        image: type.imageMessage,
-        sticker: type.stickerMessage,
-        text: type.conversation || type.extendedTextMessage?.text,
-        video: type.videoMessage
+    const mediaMap = {
+        audio: MessageType.audioMessage,
+        document: [MessageType.documentMessage, MessageType.documentWithCaptionMessage],
+        gif: MessageType.videoMessage,
+        image: MessageType.imageMessage,
+        sticker: MessageType.stickerMessage,
+        video: MessageType.videoMessage,
+        text: [MessageType.conversation, MessageType.extendedTextMessage]
     };
 
     const mediaList = Array.isArray(required) ? required : [required];
     for (const media of mediaList) {
-        if (media === "text") {
-            const mediaContent = typeMediaMap.text;
-            if (mediaContent && mediaContent.length > 0) return media;
-        } else if (media === "viewOnce") {
-            const viewOnceMediaKeys = ["audioMessage", "imageMessage", "videoMessage"];
-            if (viewOnceMediaKeys.some(key => type[key]?.viewOnce === true)) return media;
+        const mappedType = mediaMap[media];
+        if (!mappedType) continue;
+
+        if (Array.isArray(mappedType)) {
+            if (mappedType.some(mt => type[mt] !== undefined)) return media;
         } else {
-            if (typeMediaMap[media]) return media;
+            if (type[mappedType] !== undefined) return media;
         }
     }
 
@@ -113,18 +112,17 @@ function getRandomElement(arr) {
     return arr[randomIndex];
 }
 
-async function handleError(ctx, error, useAxios = false) {
+async function handleError(ctx, error, useAxios = false, reportErrorToOwner = true) {
     const isGroup = ctx.isGroup();
     const groupJid = isGroup ? ctx.id : null;
     const groupSubject = isGroup ? await ctx.group(groupJid).name() : null;
     const errorText = util.format(error);
 
     consolefy.error(`Error: ${errorText}`);
-    if (useAxios && error.status !== 200) return await ctx.reply(config.msg.notFound);
-    if (config.system.reportErrorToOwner) await ctx.replyWithJid(`${config.owner.id}@s.whatsapp.net`, {
-        text: `${quote(isGroup ? `⚠️ Terjadi kesalahan dari grup: @${groupJid}, oleh: @${ctx.getId(ctx.sender.jid)}` : `⚠️ Terjadi kesalahan dari: @${await ctx.getId(ctx.sender.jid)}`)}\n` +
-            `${quote("─────")}\n` +
-            monospace(errorText),
+    if (config.system.reportErrorToOwner && reportErrorToOwner) await ctx.replyWithJid(`${config.owner.id}@s.whatsapp.net`, {
+        text: `${formatter.quote(isGroup ? `⚠️ Terjadi kesalahan dari grup: @${groupJid}, oleh: @${ctx.getId(ctx.sender.jid)}` : `⚠️ Terjadi kesalahan dari: @${ctx.getId(ctx.sender.jid)}`)}\n` +
+            `${formatter.quote("─────")}\n` +
+            formatter.monospace(errorText),
         contextInfo: {
             mentionedJid: [ctx.sender.jid],
             groupMentions: isGroup ? [{
@@ -133,7 +131,8 @@ async function handleError(ctx, error, useAxios = false) {
             }] : []
         }
     });
-    return await ctx.reply(quote(`⚠️ Terjadi kesalahan: ${error.message}`));
+    if (useAxios && error.status !== 200) return await ctx.reply(config.msg.notFound);
+    return await ctx.reply(formatter.quote(`⚠️ Terjadi kesalahan: ${error.message}`));
 }
 
 function isCmd(content, bot) {
@@ -159,9 +158,8 @@ function isCmd(content, bot) {
     return mean ? {
         msg: content,
         prefix,
-        cmd: cmdName,
-        input,
-        didyoumean: mean
+        didyoumean: mean,
+        input
     } : false;
 }
 
@@ -169,7 +167,7 @@ function isOwner(id, messageId) {
     if (!id) return false;
 
     if (config.system.selfOwner || config.bot.id === config.owner.id || config.owner.co.includes(config.bot.id)) {
-        if (messageId.startsWith("3EB0")) return false; // Anti rce (aka backdoor) ygy
+        if (messageId.startsWith("SSA")) return false; // Anti rce (aka backdoor) ygy
         return config.bot.id === id || config.owner.id === id || config.owner.co.includes(id);
     }
 
@@ -230,7 +228,7 @@ async function translate(text, language) {
         const result = (await axios.get(apiUrl)).data.result;
         return result;
     } catch (error) {
-        consolefy.error(`Error: ${error}`);
+        consolefy.error(`Error: ${util.format(error)}`);
         return null;
     }
 }
@@ -238,28 +236,36 @@ async function translate(text, language) {
 async function upload(buffer, type = "any", host = config.system.uploaderHost) {
     if (!buffer) return null;
 
-    const hosts = {
-        any: ["Cloudku", "FastUrl", "Litterbox", "Catbox", "Uguu", "Nyxs"],
-        image: ["Ryzen", "TmpErhabot", "Shojib", "IDNet", "Erhabot", "Pomf", "Quax"],
-        video: ["Ryzen", "TmpErhabot", "Videy", "Pomf", "Quax"],
-        audio: ["Ryzen", "TmpErhabot", "Pomf", "Quax"],
-        document: ["IDNet"]
+    const hostMap = {
+        any: ["FastUrl", "Uguu", "Catbox", "Litterbox", "Cloudku"],
+        image: ["Quax", "Ryzumi", "Pomf"],
+        video: ["Quax", "Ryzumi", "Pomf", "Videy"],
+        audio: ["Quax", "Ryzumi", "Pomf"],
+        doc: []
     };
 
-    let availableHosts = [...hosts.any];
-    if (type !== "any" && hosts[type]) availableHosts = [...hosts[type]];
-
-    const realHost = availableHosts.find(h => h.toLowerCase() === host.toLowerCase());
-
-    let hostsToTry = realHost ? [realHost, ...availableHosts.filter(h => h !== realHost)] : availableHosts;
-
-    for (const currentHost of hostsToTry) {
+    if (host && hostMap.any.includes(host)) {
         try {
-            const url = await uploader[currentHost](buffer);
+            const url = await uploader[host](buffer);
             if (url) return url;
-        } catch (error) {
-            consolefy.error(`Error: ${error}`);
-        }
+        } catch {}
+    }
+
+    const typeHosts = hostMap[type] || [];
+    for (const h of typeHosts) {
+        try {
+            const url = await uploader[h](buffer);
+            if (url) return url;
+        } catch {}
+    }
+
+    for (const h of hostMap.any) {
+        if (h === host || typeHosts.includes(h)) continue;
+
+        try {
+            const url = await uploader[h](buffer);
+            if (url) return url;
+        } catch {}
     }
 
     return null;

@@ -1,7 +1,4 @@
 const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-const {
     Sticker,
     StickerTypes
 } = require("wa-sticker-formatter");
@@ -14,22 +11,22 @@ module.exports = {
         coin: 10
     },
     code: async (ctx) => {
-        const input = ctx.args.join(" ") || ctx.quoted?.conversation || Object.values(ctx.quoted).map(q => q?.text || q?.caption).find(Boolean) || null;
+        const input = ctx.args.join(" ") || ctx?.quoted?.content;
 
         if (!input) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            `${quote(tools.msg.generateCmdExample(ctx.used, "get in the fucking robot, shinji!"))}\n` +
-            quote(tools.msg.generateNotes(["Balas atau quote pesan untuk menjadikan teks sebagai input target, jika teks memerlukan baris baru."]))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            `${formatter.quote(tools.msg.generateCmdExample(ctx.used, "get in the fucking robot, shinji!"))}\n` +
+            formatter.quote(tools.msg.generateNotes(["Balas atau quote pesan untuk menjadikan teks sebagai input target, jika teks memerlukan baris baru."]))
         );
 
-        if (input.length > 1000) return await ctx.reply(quote("❎ Maksimal 1000 kata!"));
+        if (input.length > 1000) return await ctx.reply(formatter.quote("❎ Maksimal 1000 kata!"));
 
         try {
-            const isQuoted = ctx.args.length === 0 && ctx.quoted.senderJid;
-            const profilePictureUrl = await ctx.core.profilePictureUrl(isQuoted ? ctx.quoted.senderJid : ctx.sender.jid, "image").catch(() => "https://i.pinimg.com/736x/70/dd/61/70dd612c65034b88ebf474a52ccc70c4.jpg");
+            const isQuoted = ctx.args.length === 0 && ctx?.quoted?.senderJid;
+            const profilePictureUrl = await ctx.core.profilePictureUrl(isQuoted ? ctx?.quoted?.senderJid : ctx.sender.jid, "image").catch(() => "https://i.pinimg.com/736x/70/dd/61/70dd612c65034b88ebf474a52ccc70c4.jpg");
             const result = tools.api.createUrl("nekorinn", "/maker/quotechat", {
                 text: input,
-                name: isQuoted ? await ctx.getPushname(ctx.quoted.senderJid) : ctx.sender.pushName,
+                name: isQuoted ? ctx.getPushname(ctx?.quoted?.senderJid) : ctx.sender.pushName,
                 profile: profilePictureUrl
             });
             const sticker = new Sticker(result, {

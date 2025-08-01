@@ -1,7 +1,3 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-
 module.exports = {
     name: "listsewagroup",
     aliases: ["listsewa"],
@@ -11,7 +7,7 @@ module.exports = {
     },
     code: async (ctx) => {
         try {
-            const groups = db.get("group");
+            const groups = await db.get("group");
             const sewaGroups = [];
 
             for (const groupId in groups) {
@@ -24,7 +20,7 @@ module.exports = {
             }
 
             let resultText = "";
-            const groupMentions = [];
+            let groupMentions = [];
 
             for (const group of sewaGroups) {
                 const groupJid = `${group.id}@g.us`;
@@ -36,17 +32,16 @@ module.exports = {
                 });
 
                 if (group.expiration) {
-                    const daysLeft = Math.ceil((group.expiration - Date.now()) / (24 * 60 * 60 * 1000));
-                    resultText += `${quote(`@${groupJid} (${daysLeft} hari tersisa)`)}\n`;
+                    const daysLeft = tools.msg.convertMsToDuration(group.expiration, ["hari"]);
+                    resultText += `${formatter.quote(`@${groupJid} (${daysLeft} tersisa)`)}\n`;
                 } else {
-                    resultText += `${quote(`@${groupJid} (Sewa permanen)`)}\n`;
+                    resultText += `${formatter.quote(`@${groupJid} (Sewa permanen)`)}\n`;
                 }
             }
 
             return await ctx.reply({
-                text: `${resultText.trim() || config.msg.notFound}\n` +
-                    "\n" +
-                    config.msg.footer,
+                text: resultText.trim() || config.msg.notFound,
+                footer: config.msg.footer,
                 contextInfo: {
                     groupMentions
                 }

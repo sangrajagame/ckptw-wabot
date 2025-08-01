@@ -1,7 +1,3 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-
 module.exports = {
     name: "unwarning",
     category: "group",
@@ -12,39 +8,42 @@ module.exports = {
         restrict: true
     },
     code: async (ctx) => {
-        const accountJid = ctx.quoted.senderJid || ctx.msg.message.extendedTextMessage?.contextInfo?.mentionedJid?.[0] || null;
+        const accountJid = ctx?.quoted?.senderJid || ctx.getMentioned()[0] || null;
         const accountId = ctx.getId(accountJid);
 
         if (!accountJid) return await ctx.reply({
-            text: `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-                `${quote(tools.msg.generateCmdExample(ctx.used, `@${ctx.getId(ctx.sender.jid)}`))}\n` +
-                quote(tools.msg.generateNotes(["Balas atau kutip pesan untuk menjadikan pengirim sebagai akun target."])),
+            text: `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+                `${formatter.quote(tools.msg.generateCmdExample(ctx.used, `@${ctx.getId(ctx.sender.jid)}`))}\n` +
+                formatter.quote(tools.msg.generateNotes(["Balas atau kutip pesan untuk menjadikan pengirim sebagai akun target."])),
             mentions: [ctx.sender.jid]
         });
 
-        if (accountId === config.bot.id) return await ctx.reply(quote(`❎ Tidak bisa mengubah warning bot.`));
-
-        if (accountJid === await ctx.group().owner()) return await ctx.reply(quote("❎ Tidak bisa mengubah warning admin grup!"));
+        if (accountId === config.bot.id) return await ctx.reply(formatter.quote(`❎ Tidak bisa mengubah warning bot!`));
+        if (accountJid === await ctx.group().owner()) return await ctx.reply(formatter.quote("❎ Tidak bisa mengubah warning admin grup!"));
 
         try {
             const groupId = ctx.getId(ctx.id);
-            const warnings = await db.get(`group.${groupId}.warnings`) || {};
-            const current = warnings[accountId] || 0;
+            const groupDb = await db.get(`group.${groupId}`) || {};
+            const warnings = groupDb?.warnings || [];
 
-            if (current <= 0) return await ctx.reply(quote("✅ Pengguna ini tidak memiliki warning."));
+            const userWarning = warnings.find(w => w.userId === accountId);
+            let currentWarnings = userWarning ? userWarning.count : 0;
 
-            const newWarning = current - 1;
-            if (newWarning <= 0) {
-                delete warnings[accountId];
-            } else {
-                warnings[accountId] = newWarning;
+            if (currentWarnings <= 0) return await ctx.reply(formatter.quote("✅ Pengguna itu tidak memiliki warning."));
+
+            const newWarning = currentWarnings - 1;
+
+            if (userWarning) {
+                if (newWarning <= 0) {
+                    const updatedWarnings = warnings.filter(w => w.userId !== accountId);
+                    await db.set(`group.${groupId}.warnings`, updatedWarnings);
+                } else {
+                    userWarning.count = newWarning;
+                    await db.set(`group.${groupId}.warnings`, warnings);
+                }
             }
 
-            await db.set(`group.${groupId}.warnings`, warnings);
-
-            return await ctx.reply(quote(`✅ Warning dikurangi! Sekarang warning @${accountId} menjadi ${newWarning}/5.`), {
-                mentions: [accountJid]
-            });
+            return await ctx.reply(formatter.quote(`✅ Berhasil mengurangi warning pengguna itu menjadi ${newWarning}/${groupDb?.maxwarnings || 3}.`));
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);
         }

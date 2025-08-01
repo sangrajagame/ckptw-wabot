@@ -1,7 +1,6 @@
 const {
-    monospace,
-    quote
-} = require("@itsreimau/ckptw-mod");
+    ButtonBuilder
+} = require("@itsreimau/gktw");
 
 module.exports = {
     name: "menfess",
@@ -19,31 +18,29 @@ module.exports = {
         const senderId = ctx.getId(ctx.sender.jid);
 
         if (!targetId && !menfessText) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            `${quote(tools.msg.generateCmdExample(ctx.used, `${senderId} halo, dunia!`))}\n` +
-            quote(tools.msg.generateNotes(["Jangan gunakan spasi pada angka. Contoh: +62 8123-4567-8910, seharusnya +628123-4567-8910"]))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            `${formatter.quote(tools.msg.generateCmdExample(ctx.used, `${senderId} halo, dunia!`))}\n` +
+            formatter.quote(tools.msg.generateNotes(["Jangan gunakan spasi pada angka. Contoh: +62 8123-4567-8910, seharusnya +628123-4567-8910"]))
         );
+
+        if (targetId === config.bot.id) return await ctx.reply(formatter.quote("❎ Tidak dapat digunakan pada bot."));
+        if (targetId === senderId) return await ctx.reply(formatter.quote("❎ Tidak dapat digunakan pada diri sendiri."));
 
         const allMenfessDb = await db.get("menfess") || {};
         const isSenderInMenfess = Object.values(allMenfessDb).some(m => m.from === senderId || m.to === senderId);
         const isReceiverInMenfess = Object.values(allMenfessDb).some(m => m.from === targetId || m.to === targetId);
-
-        if (isSenderInMenfess) return await ctx.reply(quote("❎ Kamu tidak dapat mengirim menfess karena sedang terlibat dalam percakapan lain."));
-        if (isReceiverInMenfess) return await ctx.reply(quote("❎ Kamu tidak dapat mengirim menfess kepada pengguna ini karena dia sedang terlibat dalam percakapan lain."));
-        if (targetId === senderId) return await ctx.reply(quote("❎ Tidak dapat digunakan pada diri sendiri."));
+        if (isSenderInMenfess) return await ctx.reply(formatter.quote("❎ Kamu tidak dapat mengirim menfess karena sedang terlibat dalam percakapan lain."));
+        if (isReceiverInMenfess) return await ctx.reply(formatter.quote("❎ Kamu tidak dapat mengirim menfess, karena dia sedang terlibat dalam percakapan lain."));
 
         try {
+            const buttons = new ButtonBuilder()
+                .regulerButton("Button 1", "Hapus Menfess")
+                .build();
+
             await ctx.sendMessage(`${targetId}@s.whatsapp.net`, {
-                text: `${menfessText}\n` +
-                    `${config.msg.readmore}\n` +
-                    quote(`Setiap pesan yang kamu kirim akan diteruskan ke orang tersebut. Jika ingin berhenti, cukup ketik ${monospace("delete")} atau ${monospace("stop")}.`),
-                contextInfo: {
-                    isForwarded: true,
-                    forwardedNewsletterMessageInfo: {
-                        newsletterJid: config.bot.newsletterJid,
-                        newsletterName: config.bot.name
-                    }
-                }
+                text: menfessText,
+                footer: formatter.italic(`Setiap pesan yang kamu kirim akan diteruskan ke orang tersebut!`),
+                buttons
             }, {
                 quoted: tools.cmd.fakeMetaAiQuotedText("Seseorang telah mengirimi-mu menfess.")
             });
@@ -52,7 +49,11 @@ module.exports = {
                 to: targetId
             });
 
-            return await ctx.reply(quote(`✅ Pesan berhasil terkirim! Jika ingin berhenti, cukup ketik ${monospace("delete")} atau ${monospace("stop")}.`));
+            return await ctx.reply({
+                text: formatter.quote(`✅ Pesan berhasil terkirim!`),
+                footer: config.msg.footer,
+                buttons
+            });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);
         }

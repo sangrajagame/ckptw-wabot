@@ -1,8 +1,3 @@
-const {
-    monospace,
-    quote
-} = require("@itsreimau/ckptw-mod");
-
 module.exports = {
     name: "settext",
     aliases: ["settxt"],
@@ -14,17 +9,20 @@ module.exports = {
     },
     code: async (ctx) => {
         const key = ctx.args[0] || null;
-        const text = ctx.args.slice(1).join(" ") || ctx.quoted?.conversation || Object.values(ctx.quoted).map(q => q?.text || q?.caption).find(Boolean) || null;
+        const text = ctx.args.slice(1).join(" ") || ctx?.quoted?.content || null;
 
         if (!key || !text) return await ctx.reply(
-            `${quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
-            `${quote(tools.msg.generateCmdExample(ctx.used, "welcome Selamat datang di grup!"))}\n` +
-            quote(tools.msg.generateNotes([`Ketik ${monospace(`${ctx.used.prefix + ctx.used.command} list`)} untuk melihat daftar.`, "Balas atau quote pesan untuk menjadikan teks sebagai input target, jika teks memerlukan baris baru.", `Gunakan ${monospace("delete")} sebagai teks untuk menghapus teks yang disimpan sebelumnya.`]))
+            `${formatter.quote(tools.msg.generateInstruction(["send"], ["text"]))}\n` +
+            `${formatter.quote(tools.msg.generateCmdExample(ctx.used, "welcome Selamat datang di grup!"))}\n` +
+            formatter.quote(tools.msg.generateNotes([`Ketik ${formatter.inlineCode(`${ctx.used.prefix + ctx.used.command} list`)} untuk melihat daftar.`, "Balas atau quote pesan untuk menjadikan teks sebagai input target, jika teks memerlukan baris baru.", `Gunakan ${formatter.inlineCode("delete")} sebagai teks untuk menghapus teks yang disimpan sebelumnya.`]))
         );
 
-        if (["l", "list"].includes(key.toLowerCase())) {
+        if (key.toLowerCase() === "list") {
             const listText = await tools.list.get("settext");
-            return await ctx.reply(listText);
+            return await ctx.reply({
+                text: listText,
+                footer: config.msg.footer
+            });
         }
 
         try {
@@ -38,16 +36,16 @@ module.exports = {
                     setKey = `group.${groupId}.text.${key.toLowerCase()}`;
                     break;
                 default:
-                    return await ctx.reply(quote(`❎ Teks '${key}' tidak valid!`));
+                    return await ctx.reply(formatter.quote(`❎ Teks ${formatter.inlineCode(key)} tidak valid!`));
             }
 
-            if (["d", "delete"].includes(text.toLowerCase())) {
+            if (text.toLowerCase() === "delete") {
                 await db.delete(setKey);
-                return await ctx.reply(quote(`🗑️ Pesan untuk teks '${key}' berhasil dihapus!`));
+                return await ctx.reply(formatter.quote(`🗑️ Pesan untuk teks ${formatter.inlineCode(key)} berhasil dihapus!`));
             }
 
             await db.set(setKey, text);
-            return await ctx.reply(quote(`✅ Pesan untuk teks '${key}' berhasil disimpan!`));
+            return await ctx.reply(formatter.quote(`✅ Pesan untuk teks ${formatter.inlineCode(key)} berhasil disimpan!`));
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);
         }

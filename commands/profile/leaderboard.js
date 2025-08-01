@@ -1,15 +1,11 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-
 module.exports = {
     name: "leaderboard",
-    aliases: ["lb"],
+    aliases: ["lb", "peringkat"],
     category: "profile",
     code: async (ctx) => {
         try {
             const senderId = ctx.getId(ctx.sender.jid);
-            const users = (await db.toJSON()).user;
+            const users = await db.get("user");
 
             const leaderboardData = Object.entries(users)
                 .map(([id, data]) => ({
@@ -27,20 +23,19 @@ module.exports = {
             topUsers.forEach((user, index) => {
                 const isSelf = user.id === senderId;
                 const displayName = isSelf ? `@${user.id}` : user.username ? user.username : `${user.id}`;
-                resultText += quote(`${index + 1}. ${displayName} - Menang: ${user.winGame}, Level: ${user.level}\n`);
+                resultText += formatter.quote(`${index + 1}. ${displayName} - Menang: ${user.winGame}, Level: ${user.level}\n`);
             });
 
             if (userRank > 10) {
                 const userStats = leaderboardData[userRank - 1];
                 const displayName = `@${senderId}`;
-                resultText += quote(`${userRank}. ${displayName} - Menang: ${userStats.winGame}, Level: ${userStats.level}\n`);
+                resultText += formatter.quote(`${userRank}. ${displayName} - Menang: ${userStats.winGame}, Level: ${userStats.level}\n`);
             }
 
             return await ctx.reply({
-                text: `${resultText.trim()}\n` +
-                    "\n" +
-                    config.msg.footer,
-                mentions: [`${senderId}@s.whatsapp.net`]
+                text: resultText.trim(),
+                mentions: [`${senderId}@s.whatsapp.net`],
+                footer: config.msg.footer
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);

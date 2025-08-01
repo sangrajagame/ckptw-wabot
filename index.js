@@ -3,6 +3,9 @@ require("./config.js");
 const pkg = require("./package.json");
 const tools = require("./tools/exports.js");
 const {
+    Formatter
+} = require("@itsreimau/gktw");
+const {
     Consolefy
 } = require("@mengkodingan/consolefy");
 const CFonts = require("cfonts");
@@ -19,42 +22,37 @@ const c = new Consolefy({
 // Inisialisasi SimplDB untuk Database
 const dbFile = path.join(__dirname, "database.json");
 if (!fs.existsSync(dbFile)) fs.writeFileSync(dbFile, "{}", "utf8");
-const db = new SimplDB();
 
 // Tetapkan variabel global
 config.bot.version = `v${pkg.version}`;
 Object.assign(global, {
     config,
-    tools,
     consolefy: c,
-    db
+    db: new SimplDB(),
+    formatter: Formatter,
+    tools
 });
 
 c.log("Starting..."); // Logging proses awal
 
-// Tampilkan nama proyek
+// Tampilkan nama proyek serta deskripsi lain
 CFonts.say(pkg.name, {
-    font: "chrome",
-    align: "center",
-    gradient: ["red", "magenta"]
+    colors: ["#00A1E0", "#00FFFF"],
+    align: "center"
 });
 
-// Tampilkan deskripsi dan informasi pengembang
-CFonts.say(
-    `'${pkg.description}'\n` +
-    `By ${pkg.author}`, {
-        font: "console",
-        align: "center",
-        gradient: ["red", "magenta"]
-    }
-);
+CFonts.say(`${pkg.description} - By ${pkg.author}`, {
+    font: "console",
+    colors: ["#E0F7FF"],
+    align: "center"
+});
 
 // Jalankan server jika diaktifkan dalam konfigurasi
 if (config.system.useServer) {
     const {
         port
     } = config.system;
-    http.createServer(res => res.end(`${pkg.name} berjalan di port ${port}`)).listen(port, () => c.success(`${pkg.name} runs on port ${port}`));
+    http.createServer((_, res) => res.end(`${pkg.name} berjalan di port ${port}`)).listen(port, () => c.success(`${pkg.name} runs on port ${port}`));
 }
 
 require("./main.js"); // Jalankan modul utama

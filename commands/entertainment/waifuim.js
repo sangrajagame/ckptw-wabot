@@ -1,7 +1,7 @@
 const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-const mime = require("mime-types");
+    ButtonBuilder
+} = require("@itsreimau/gktw");
+const axios = require("axios");
 
 module.exports = {
     name: "waifuim",
@@ -12,24 +12,32 @@ module.exports = {
     code: async (ctx) => {
         const input = ctx.args.join(" ") || null;
 
-        if (["l", "list"].includes(input?.toLowerCase())) {
+        if (input?.toLowerCase() === "list") {
             const listText = await tools.list.get("waifuim");
-            return await ctx.reply(listText);
+            return await ctx.reply({
+                text: listText,
+                footer: config.msg.footer
+            });
         }
 
         try {
             const listWaifuim = ["ass", "ecchi", "ero", "hentai", "maid", "milf", "oppai", "oral", "paizuri", "selfies", "uniform", "waifu"];
             const waifuim = listWaifuim.includes(input) ? input : tools.cmd.getRandomElement(listWaifuim);
-            const result = tools.api.createUrl("nekorinn", `/waifuim/${waifuim}`);
+            const apiUrl = tools.api.createUrl("https://api.waifu.im", "/search", {
+                included_tags: waifuim
+            });
+            const result = (await axios.get(apiUrl)).data.images[0].url;
 
             return await ctx.reply({
                 image: {
                     url: result
                 },
-                mimetype: mime.lookup("jpg"),
-                caption: `${quote(`Kategori: ${tools.msg.ucwords(waifuim)}`)}\n` +
-                    "\n" +
-                    config.msg.footer
+                mimetype: tools.mime.lookup("jpg"),
+                caption: formatter.quote(`Kategori: ${tools.msg.ucwords(waifuim)}`),
+                footer: config.msg.footer,
+                buttons: new ButtonBuilder()
+                    .regulerButton("Ambil Lagi", input ? `${ctx.used.prefix + ctx.used.command} ${input}` : ctx.used.prefix + ctx.used.command)
+                    .build()
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);

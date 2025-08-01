@@ -1,7 +1,6 @@
 const {
-    monospace,
-    quote
-} = require("@itsreimau/ckptw-mod");
+    ButtonBuilder
+} = require("@itsreimau/gktw");
 const axios = require("axios");
 const didYouMean = require("didyoumean");
 
@@ -14,7 +13,7 @@ module.exports = {
         group: true
     },
     code: async (ctx) => {
-        if (session.has(ctx.id)) return await ctx.reply(quote("🎮 Sesi permainan sedang berjalan!"));
+        if (session.has(ctx.id)) return await ctx.reply(formatter.quote("🎮 Sesi permainan sedang berjalan!"));
 
         try {
             const apiUrl = tools.api.createUrl("https://raw.githubusercontent.com", "/BochilTeam/database/refs/heads/master/games/family100.json");
@@ -32,18 +31,23 @@ module.exports = {
 
             session.set(ctx.id, true);
 
-            await ctx.reply(
-                `${quote(`Soal: ${result.soal}`)}\n` +
-                `${quote(`Jumlah jawaban: ${game.answers.size}`)}\n` +
-                `${quote(`Batas waktu: ${tools.msg.convertMsToDuration(game.timeout)}`)}\n` +
-                `${quote(`Ketik ${monospace("surrender")} untuk menyerah.`)}\n` +
-                "\n" +
-                config.msg.footer
-            );
+            await ctx.reply({
+                text: `${formatter.quote(`Soal: ${result.soal}`)}\n` +
+                    `${formatter.quote(`Jumlah jawaban: ${game.answers.size}`)}\n` +
+                    formatter.quote(`Batas waktu: ${tools.msg.convertMsToDuration(game.timeout)}`),
+                footer: config.msg.footer,
+                buttons: new ButtonBuilder()
+                    .regulerButton("Menyerah", "surrender")
+                    .build()
+            });
 
             const collector = ctx.MessageCollector({
                 time: game.timeout
             });
+
+            const playAgain = new ButtonBuilder()
+                .regulerButton("Main Lagi", ctx.used.prefix + ctx.used.command)
+                .build();
 
             collector.on("collect", async (m) => {
                 const participantAnswer = m.content.toLowerCase();
@@ -55,7 +59,7 @@ module.exports = {
 
                     await db.add(`user.${participantId}.coin`, game.coin.answered);
                     await ctx.sendMessage(ctx.id, {
-                        text: quote(`✅ ${tools.msg.ucwords(participantAnswer)} benar! Jawaban tersisa: ${game.answers.size}`)
+                        text: formatter.quote(`✅ ${tools.msg.ucwords(participantAnswer)} benar! Jawaban tersisa: ${game.answers.size}`)
                     }, {
                         quoted: m
                     });
@@ -67,25 +71,29 @@ module.exports = {
                             await db.add(`user.${participant}.winGame`, 1);
                         }
                         await ctx.sendMessage(ctx.id, {
-                            text: quote(`🎉 Selamat! Semua jawaban telah terjawab! Setiap anggota yang menjawab mendapat ${game.coin.allAnswered} koin.`)
+                            text: formatter.quote(`🎉 Selamat! Semua jawaban telah terjawab! Setiap anggota yang menjawab mendapat ${game.coin.allAnswered} koin.`),
+                            footer: config.msg.footer,
+                            buttons: playAgain
                         }, {
                             quoted: m
                         });
                         return collector.stop();
                     }
-                } else if (["s", "surrender"].includes(participantAnswer)) {
+                } else if (participantAnswer === "surrender") {
                     const remaining = [...game.answers].map(tools.msg.ucwords).join(", ").replace(/, ([^,]*)$/, ", dan $1");
                     session.delete(ctx.id);
                     await ctx.sendMessage(ctx.id, {
-                        text: `${quote("🏳️ Kamu menyerah!")}\n` +
-                            quote(`Jawaban yang belum terjawab adalah ${remaining}.`)
+                        text: `${formatter.quote("🏳️ Kamu menyerah!")}\n` +
+                            formatter.quote(`Jawaban yang belum terjawab adalah ${remaining}.`),
+                        footer: config.msg.footer,
+                        buttons: playAgain
                     }, {
                         quoted: m
                     });
                     return collector.stop();
                 } else if (didYouMean(participantAnswer, [game.answer]) === game.answer) {
                     await ctx.sendMessage(ctx.id, {
-                        text: quote("🎯 Sedikit lagi!")
+                        text: formatter.quote("🎯 Sedikit lagi!")
                     }, {
                         quoted: m
                     });
@@ -97,10 +105,12 @@ module.exports = {
 
                 if (session.has(ctx.id)) {
                     session.delete(ctx.id);
-                    return await ctx.reply(
-                        `${quote("⏱ Waktu habis!")}\n` +
-                        quote(`Jawaban yang belum terjawab adalah ${remaining}`)
-                    );
+                    return await ctx.reply({
+                        text: `${formatter.quote("⏱ Waktu habis!")}\n` +
+                            formatter.quote(`Jawaban yang belum terjawab adalah ${remaining}`),
+                        footer: config.msg.footer,
+                        buttons: playAgain
+                    });
                 }
             });
         } catch (error) {

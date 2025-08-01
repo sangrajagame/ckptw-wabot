@@ -1,6 +1,6 @@
 const {
-    quote
-} = require("@itsreimau/ckptw-mod");
+    ButtonBuilder
+} = require("@itsreimau/gktw");
 const axios = require("axios");
 
 module.exports = {
@@ -24,14 +24,16 @@ module.exports = {
             const word = tools.cmd.getRandomElement((await axios.get(tools.api.createUrl("https://raw.githubusercontent.com", "/BochilTeam/database/master/kata-kata/bucin.json"))).data);
 
             return await ctx.reply({
-                text: `${quote(`@${ctx.getId(selected[0])} ❤️ @${ctx.getId(selected[1])}`)}\n` +
-                    `${quote(word)}\n` +
-                    "\n" +
-                    config.msg.footer,
-                mentions: selected
+                text: `${formatter.quote(`@${ctx.getId(selected[0])} ❤️ @${ctx.getId(selected[1])}`)}\n` +
+                    formatter.quote(word) || config.msg.notFound,
+                mentions: selected,
+                footer: config.msg.footer,
+                buttons: new ButtonBuilder()
+                    .regulerButton("Ambil Lagi", ctx.used.prefix + ctx.used.command)
+                    .build()
             });
         } catch (error) {
-            return await tools.cmd.handleError(ctx, error, true);
+            return await tools.cmd.handleError(ctx, error);
         }
     }
 };

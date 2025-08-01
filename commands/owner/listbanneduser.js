@@ -1,7 +1,3 @@
-const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-
 module.exports = {
     name: "listbanneduser",
     aliases: ["listban", "listbanned"],
@@ -11,7 +7,7 @@ module.exports = {
     },
     code: async (ctx) => {
         try {
-            const users = db.get("user");
+            const users = await db.get("user");
             const bannedUsers = [];
 
             for (const userId in users) {
@@ -22,7 +18,7 @@ module.exports = {
             let userMentions = [];
 
             bannedUsers.forEach(userId => {
-                resultText += `${quote(`@${userId}`)}\n`;
+                resultText += `${formatter.quote(`@${userId}`)}\n`;
             });
 
             bannedUsers.forEach(userId => {
@@ -30,10 +26,9 @@ module.exports = {
             });
 
             return await ctx.reply({
-                text: `${resultText.trim() || config.msg.notFound}` +
-                    "\n" +
-                    config.msg.footer,
-                mentions: userMentions
+                text: resultText.trim() || config.msg.notFound,
+                mentions: userMentions,
+                footer: config.msg.footer
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error);

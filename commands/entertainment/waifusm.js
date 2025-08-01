@@ -1,7 +1,6 @@
 const {
-    quote
-} = require("@itsreimau/ckptw-mod");
-const mime = require("mime-types");
+    ButtonBuilder
+} = require("@itsreimau/gktw");
 
 module.exports = {
     name: "waifusm",
@@ -12,9 +11,12 @@ module.exports = {
     code: async (ctx) => {
         const input = ctx.args.join(" ") || null;
 
-        if (["l", "list"].includes(input?.toLowerCase())) {
+        if (input?.toLowerCase() === "list") {
             const listText = await tools.list.get("waifusm");
-            return await ctx.reply(listText);
+            return await ctx.reply({
+                text: listText,
+                footer: config.msg.footer
+            });
         }
 
         try {
@@ -26,10 +28,12 @@ module.exports = {
                 image: {
                     url: result
                 },
-                mimetype: mime.lookup("jpg"),
-                caption: `${quote(`Kategori: ${tools.msg.ucwords(waifusm)}`)}\n` +
-                    "\n" +
-                    config.msg.footer
+                mimetype: tools.mime.lookup("jpg"),
+                caption: formatter.quote(`Kategori: ${tools.msg.ucwords(waifusm)}`),
+                footer: config.msg.footer,
+                buttons: new ButtonBuilder()
+                    .regulerButton("Ambil Lagi", input ? `${ctx.used.prefix + ctx.used.command} ${input}` : ctx.used.prefix + ctx.used.command)
+                    .build()
             });
         } catch (error) {
             return await tools.cmd.handleError(ctx, error, true);
